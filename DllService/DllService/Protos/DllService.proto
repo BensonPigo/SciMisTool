@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+service DllService{
+  rpc InvokeMethod(MethodRequest) returns (MethodResponse);
+}
+
+message MethodRequest{
+  string dllPath=1;
+  string typeName = 2;
+  string methodName = 3;
+  repeated string parameters = 4;
+}
+
+message MethodResponse{
+  string result = 1;
+}
