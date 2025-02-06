@@ -1,0 +1,49 @@
+1. 開啟終端機
+2. 切到 InsertImageToDatabase.exe 所在目錄
+3. 準備好圖片
+4. 準備好指令
+
+指令格式：
+./InsertImageToDatabase.exe `
+         -image="圖片絕對路徑" `
+         -server="DBserver明成" `
+         -db="資料庫名稱" `
+         -user="登入帳號" `
+         -password="登入密碼" `
+         -table="資料表名稱" `
+         -pkey="資料表PKey欄位名稱，多個欄位則用,隔開" `
+         -pval="資料表PKey欄位的值，多個欄位則用,隔開" `
+         -column="圖片欄位本人"
+
+以下範例，可在testing\SPS測試：
+
+*單一Pkey欄位
+./InsertImageToDatabase.exe `
+         -image="C:\Users\benson.chung\Downloads\貓貓.jpg" `
+         -server="testing\SPS" `
+         -db="PMSFile" `
+         -user="SCIMIS" `
+         -password="27128299" `
+         -table="FinalInspection_DetailImage" `
+         -pkey="Ukey" `
+         -pval="5" `
+         -column="Image" 
+		 
+*多Pkey欄位
+./InsertImageToDatabase.exe `
+         -image="C:\Users\benson.chung\Downloads\貓貓.jpg" `
+         -server="testing\SPS" `
+         -db="PMSFile" `
+         -user="SCIMIS" `
+         -password="27128299" `
+         -table="GarmentTest_Detail" `
+         -pkey="ID,No" `
+         -pval="9761,1" `
+         -column="TestBeforePicture" 
+
+
+5. 貼上指令，按enter，若成功會出現✅ 圖片已成功儲存至資料庫！
+
+
+
+

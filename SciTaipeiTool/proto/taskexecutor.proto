@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package taskexecutor;
+
+option go_package = "proto/taskexecutor";
+
+// 定義服務
+service TaskExecutor {
+  rpc ExecuteTask(TaskRequest) returns (TaskResponse);
+  rpc GetScripts(Empty) returns (GetScriptsResponse);
+}
+
+// 定義請求與回應
+message TaskRequest {
+  string FactoryId = 1; // 任務名稱
+  string TaskName = 2; // 任務名稱
+}
+
+message TaskResponse {
+  string message = 1;   // 執行結果訊息
+  string output = 2;    // 腳本執行輸出
+  string error = 3;     // 錯誤訊息（如有）
+}
+
+message GetScriptsResponse {
+  string FactoryId = 1; // /工廠ID
+  repeated string scriptFiles = 2; // 腳本檔案清單
+}
+
+message Empty {}

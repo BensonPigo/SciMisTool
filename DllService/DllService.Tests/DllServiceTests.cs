@@ -22,6 +22,7 @@ public class DllServiceTests
         _service = new GrpcDllServiceImpl();
     }
 
+
     [Test]
     public async Task InvokeMethod_ShouldReturnExpectedResult()
     {
@@ -31,10 +32,10 @@ public class DllServiceTests
         // 準備 MethodRequest 物件
         var request = new MethodRequest
         {
-            DirectoryPath = @"C:\Git\Production\Sci.Production.PublicPrg\bin\Debug",
-            DllPath = @"C:\Git\Production\Sci.Production.PublicPrg\bin\Debug\Sci.Production.Prg.dll",
-            TypeName = "Sci.Production.Prg.PowerBI.Logic.QA_R51",
-            MethodName = "Get_QA_R51",
+            DirectoryPath = @"C:\Git\Quality\Quality\BusinessLogicLayer\bin\Debug",
+            DllPath = @"C:\Git\Quality\Quality\BusinessLogicLayer\bin\Debug\BusinessLogicLayer.dll",
+            TypeName = "BusinessLogicLayer.Service.FinalInspection.QueryService",
+            MethodName = "GetFinalInspectionReport",
         };
 
         // 將參數序列化為 JSON 並添加到 request.Parameters
@@ -44,18 +45,7 @@ public class DllServiceTests
             IsBI = false,
             StartInspectionDate = DateTime.Now
         };
-        var jsonParameter = $@"
-{{
-   ""SP"":""24XXX"",
-   ""M"":""24XXX"",
-   ""Factory"":""24XXX"",
-   ""Shift"":""24XXX"",
-   ""IsBI"":true,
-   ""StartInspectionDate"":""2025-01-15T10:47:37.9982734+08:00"",
-   ""EndInspectionDate"":""2025-01-15T10:47:37.9982734+08:00"",
-    ""FormatType"":""Summary""
-}}
-";
+        var jsonParameter = $@"SPSCH25010622";
         request.Parameters.Add(jsonParameter);
 
         // Act

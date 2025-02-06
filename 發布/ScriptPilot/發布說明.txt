@@ -1,0 +1,22 @@
+
+以MISAP為例
+
+1. 選定程式存放位置，例如：C:\Golang
+2. 把 ScriptPilot 資料夾整個複製過去
+3. 修改\ScriptPilot\config\ 底下的 systemparameter.XXX.yaml 設定檔，dev=測試用，prod=正式用
+4. yaml 設定檔說明：
+
+FactoryID: 工廠名稱_Server名稱
+ScriptRootPath: ScriptPilot 資料夾所在目錄\ScriptPilot\ScriptRootPath
+TcpPort: 對外的Port
+
+以下為範例
+FactoryID: PH1_PMS
+ScriptRootPath: C:\Golang\ScriptPilot\ScriptRootPath
+TcpPort: 4965
+
+5. 設定防火牆Port開放，執行Cmd
+可參考 指令.txt
+例如：netsh advfirewall firewall add rule name="Allow gRPC" dir=in action=allow protocol=TCP localport=4965
+
+6. 設定服務並開啟

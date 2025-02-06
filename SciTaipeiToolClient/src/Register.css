@@ -1,0 +1,93 @@
+.register-container {
+    max-width: 400px;
+    margin: 50px auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background-color: #fff;
+    text-align: center;
+  }
+  
+  .logo-section h1 {
+    color: #e60023; /* 鮮紅色 */
+    font-family: "Arial Black", sans-serif;
+    font-size: 28px;
+    margin: 0 0 20px;
+  }
+  
+  h2 {
+    margin-bottom: 20px;
+    color: #333; /* 深灰黑色 */
+    font-weight: bold;
+  }
+  
+  .form-group {
+    margin-bottom: 15px;
+    text-align: left;
+  }
+  
+  label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #333;
+  }
+  
+  input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+  
+  input:focus {
+    border-color: #e60023;
+    outline: none;
+  }
+  
+  .register-button {
+    width: 100%;
+    padding: 10px;
+    background-color: #e60023; /* 鮮紅色 */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background-color 0.3s ease; /* 添加過渡效果 */
+  }
+  
+  .register-button:hover {
+    background-color: #c0001d; /* 深紅色 */
+  }
+  
+  /* 禁用按鈕樣式 */
+  .register-button:disabled {
+    background-color: #ccc; /* 灰色背景 */
+    color: #666; /* 淡灰色文字 */
+    cursor: not-allowed; /* 禁用光標 */
+    border: none;
+  }
+
+  .back-to-login {
+    display: block;
+    margin-top: 20px;
+    color: #e60023;
+    text-decoration: none;
+    font-weight: bold;
+  }
+  
+  .back-to-login:hover {
+    text-decoration: underline;
+  }
+  /* 容器樣式與其他樣式保持一致 */
+
+.error-message {
+    color: #e60023; /* 鮮紅色 */
+    font-size: 12px;
+    margin-top: 5px;
+    text-align: left;
+  }
