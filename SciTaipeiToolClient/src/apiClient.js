@@ -3,6 +3,8 @@ import { getAccessToken, saveAccessToken, clearAccessToken } from "./utils/token
 
 const BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:4795/api/v1";
 
+console.log("當前環境：", process.env.NODE_ENV);
+
 /**
  * 創建 API Client，可選擇是否使用攔截器
  * @param {boolean} useInterceptor 是否使用攔截器，預設 true

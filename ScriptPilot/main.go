@@ -60,7 +60,7 @@ func (s *server) ExecuteTask(ctx context.Context, req *pb.TaskRequest) (*pb.Task
 	}
 
 	// 腳本執行
-	output, err := executePowerShellScript(scriptPath)
+	err = executePowerShellScript(scriptPath)
 	if err != nil {
 		return &pb.TaskResponse{
 			Message: "腳本執行失敗",
@@ -70,7 +70,6 @@ func (s *server) ExecuteTask(ctx context.Context, req *pb.TaskRequest) (*pb.Task
 
 	return &pb.TaskResponse{
 		Message: "腳本執行成功",
-		Output:  string(output),
 	}, nil
 }
 
@@ -112,9 +111,9 @@ func getScriptPath(taskName string, factoryId string) (string, error) {
 }
 
 // 執行 PowerShell 腳本
-func executePowerShellScript(scriptPath string) ([]byte, error) {
+func executePowerShellScript(scriptPath string) error {
 	cmd := exec.Command("powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", scriptPath)
-	return cmd.CombinedOutput()
+	return cmd.Start()
 }
 
 func main() {

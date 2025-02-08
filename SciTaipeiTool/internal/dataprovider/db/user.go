@@ -67,6 +67,7 @@ func AuthenticateUser(inputUser *models.User) (*models.User, error) {
 func ResetPassword(user models.User) error {
 	db := GetDB() // 獲取資料庫連接
 
+	newPwd := user.Password
 	// 檢查是否已存在
 	result := db.Where("email = ?", user.Email).First(&user)
 	if result.RowsAffected == 0 {
@@ -74,7 +75,7 @@ func ResetPassword(user models.User) error {
 	}
 
 	// 雜湊密碼
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPwd), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("密碼雜湊失敗: %v", err)
 	}

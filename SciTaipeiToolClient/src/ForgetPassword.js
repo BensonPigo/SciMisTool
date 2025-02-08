@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Link,useNavigate } from "react-router-dom";
-import axios from "axios";
 import { createApiClient } from "./apiClient";
 import "./ForgetPassword.css"; // 引用樣式
 
