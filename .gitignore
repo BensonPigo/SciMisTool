@@ -362,3 +362,5 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 /發布
+/SciTaipeiTool/SciTaipeiTool.db
+/SciTaipeiTool/SciTaipeiTool.exe
