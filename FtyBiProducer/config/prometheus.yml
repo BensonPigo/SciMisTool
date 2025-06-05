@@ -1,0 +1,21 @@
+# scrape_configs:
+#   - job_name: ftybiproducrt"
+#     static_configs:
+#       - targets: ["FTYBIPRODUCER:2112"]
+# prometheus.yml 範例
+global:
+  scrape_interval: 15s       # 預設每 15 秒去抓一次
+  evaluation_interval: 15s
+
+scrape_configs:
+  # ---- 抓取 Consumer 服務 ----
+  - job_name: 'consumer-service'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['localhost:2113']   # Consumer 服務暴露 /metrics 的 port
+
+  # ---- 抓取 Producer 服務 ----
+  - job_name: 'producer-service'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['localhost:2112']   # Producer 服務暴露 /metrics 的 port

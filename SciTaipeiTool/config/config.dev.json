@@ -1,17 +1,24 @@
 {
     "host": "localhost",
-    "port": "8080",
+    "port": "4795",
     "db": {
       "host": "",
       "user": "",
       "password": "",
       "name": "SciTaipeiTool.db"
     },
-    "grpcservers": [{
-      "factory":"PH1_PMS",
-      "server": "misap:4965",
-      "timeout": 5
-    }],
+    "grpcservers": [
+      {
+          "factory":"PH1_PMS",
+          "server": "112.199.70.26:50095",
+          "timeout": 10
+      },
+      {
+          "factory":"PH1_MES",
+          "server": "ph1bi.sportscity.com.ph:50095",
+          "timeout": 10
+      }
+    ],
     "jwt_secret_key":"27128299"
   }
   
