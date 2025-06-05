@@ -37,24 +37,24 @@ func main() {
 	sugar := logger.Sugar()
 	sugar.Info("Logger 初始化成功")
 
-	// 3. 啟動 Metrics Server. 先啟動一個專門用來暴露 /metrics 的 HTTP 伺服器
-	go func() {
-		http.Handle("/metrics", promhttp.Handler())
-		sugar.Info("Metrics 伺服器啟動，監聽 :2112/metrics")
-		if err := http.ListenAndServe(":2112", nil); err != nil {
-			sugar.Fatalf("Metrics server 錯誤", zap.Error(err))
-		}
-	}()
-
-	// 4. 建立可取消的 Context，訂閱 SIGINT 和 SIGTERM
+	// 3. 建立可取消的 Context，訂閱 SIGINT 和 SIGTERM
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	// 5. 各種設定管理
+	// 4. 各種設定管理
 	cfg, err := config.LoadConfig("config/config.yaml")
 	if err != nil {
 		sugar.Fatalf("載入設定失敗：：", zap.Error(err))
 	}
+
+	// 5. 啟動 Metrics Server. 先啟動一個專門用來暴露 /metrics 的 HTTP 伺服器
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		sugar.Info("Metrics 伺服器啟動，監聽 :" + strconv.Itoa(cfg.Prometheus.MetricsPort) + "/metrics")
+		if err := http.ListenAndServe(":"+strconv.Itoa(cfg.Prometheus.MetricsPort), nil); err != nil {
+			sugar.Fatalf("Metrics server 錯誤", zap.Error(err))
+		}
+	}()
 
 	// 6. 建立 MQ Client
 	mqClient, err := mq.NewMQClient(cfg.MQ)

@@ -34,15 +34,6 @@ func NewProcessor(db *gorm.DB) *Processor {
 	}
 }
 
-// 建立同時需要 db + mqClient 的 Processor
-// func NewWithMQ(dbConn *gorm.DB, mqClient *mq.MQClient) *Processor {
-// 	return &Processor{
-// 		db: dbConn,
-// 		// mqClient:     mqClient,
-// 		colTypeCache: make(map[string][]gorm.ColumnType),
-// 	}
-// }
-
 func (p *Processor) getColumnTypesOnce(ctx context.Context, tableName string) ([]gorm.ColumnType, error) {
 	if types, ok := p.colTypeCache[tableName]; ok {
 		return types, nil
@@ -172,171 +163,26 @@ func convertValue(raw interface{}, ct gorm.ColumnType) (interface{}, error) {
 	}
 }
 
-// batchInsertBulkCopy：用 BulkCopy 把 rawDatas 插入到 tableName
-func (p *Processor) batchInsertBulkCopy(ctx context.Context, mssqlConn *mssql.Conn, tableName string, oriTableName string, rawDatas []map[string]interface{}) error {
-
-	// 只取一次 ColumnTypes
-
-	columnTypes, err := p.getColumnTypesOnce(ctx, oriTableName)
-	if err != nil {
-		return fmt.Errorf("取得 %s 欄位資訊失敗: %w", oriTableName, err)
-	}
-
-	// 把欄位名稱排序，確保順序固定
-	sort.Slice(columnTypes, func(i, j int) bool {
-		return columnTypes[i].Name() < columnTypes[j].Name()
-	})
-
-	cols := make([]string, len(columnTypes))
-	colTypeMap := make(map[string]gorm.ColumnType, len(columnTypes))
-	for i, ct := range columnTypes {
-		cols[i] = ct.Name()
-		colTypeMap[ct.Name()] = ct
-	}
-
-	// 批次做所有 rawDatas 的過濾 + 型別轉換
-	// 先分配好外層 slice 長度，避免 append 時重複 reallocate
-	convertedRows := make([][]interface{}, 0, len(rawDatas))
-	for rowIdx, row := range rawDatas {
-		vals := make([]interface{}, len(cols))
-		anyValue := false
-
-		for i, col := range cols {
-			rawVal, exists := row[col]
-			if !exists {
-				// data map 裡沒有此欄位 → 設為 nil → SQL 端 INSERT 會當成 NULL
-				vals[i] = nil
-				continue
-			}
-
-			ct := colTypeMap[col]
-			dbType := strings.ToUpper(ct.DatabaseTypeName())
-
-			// 如果 rawVal 已經正確類型，就直接塞，不用再 parse
-			switch {
-			case (dbType == "INT" || dbType == "BIGINT" || dbType == "SMALLINT" || dbType == "TINYINT"):
-				if v, ok := rawVal.(int64); ok {
-					vals[i] = v
-					anyValue = true
-					continue
-				}
-				if v, ok := rawVal.(int); ok {
-					vals[i] = int64(v)
-					anyValue = true
-					continue
-				}
-				if v, ok := rawVal.(float64); ok {
-					// JSON number 未指定小數點，會被解成 float64，要轉成 int64
-					vals[i] = int64(v)
-					anyValue = true
-					continue
-				}
-
-			case (dbType == "FLOAT" || strings.HasPrefix(dbType, "DECIMAL") || strings.HasPrefix(dbType, "NUMERIC")):
-				if v, ok := rawVal.(float64); ok {
-					vals[i] = v
-					anyValue = true
-					continue
-				}
-
-			case dbType == "BIT":
-				if v, ok := rawVal.(bool); ok {
-					vals[i] = v
-					anyValue = true
-					continue
-				}
-
-			case (dbType == "DATE" || dbType == "DATETIME" || dbType == "DATETIME2" || dbType == "SMALLDATETIME"):
-				if v, ok := rawVal.(time.Time); ok {
-					vals[i] = v
-					anyValue = true
-					continue
-				}
-
-			}
-
-			// 其餘情況才呼叫 convertValue（文字解析）
-			conv, convErr := convertValue(rawVal, ct)
-			if convErr != nil {
-				return fmt.Errorf("第 %d 筆資料，欄位 %s 轉換失敗: %w", rowIdx, col, convErr)
-			}
-			if conv != nil {
-				anyValue = true
-			}
-			vals[i] = conv
-		}
-
-		// 如果這筆沒有任何值（全部都是 nil），就不存進 convertedRows
-		if anyValue {
-			convertedRows = append(convertedRows, vals)
-		}
-	}
-
-	if len(convertedRows) == 0 {
-		// 沒有任何資料要插入，直接結束
-		return nil
-	}
-
-	// —— 3. 拿同一個 transaction 底下的 *sql.Conn，並用 BulkCopy —— //
-	// sqlDB, err := tx.DB()
-	// if err != nil {
-	// 	return fmt.Errorf("無法從 GORM 拿到 *sql.DB: %w", err)
-	// }
-
-	// sqlConn, err := sqlDB.Conn(ctx)
-	// if err != nil {
-	// 	return fmt.Errorf("建立 *sql.Conn 失敗: %w", err)
-	// }
-	// defer sqlConn.Close()
-
-	// var mssqlConn *mssql.Conn
-	// if err := sqlConn.Raw(func(driverConn interface{}) error {
-	// 	c, ok := driverConn.(*mssql.Conn)
-	// 	if !ok {
-	// 		return fmt.Errorf("DriverConn 不是 *mssql.Conn，而是 %T", driverConn)
-	// 	}
-	// 	mssqlConn = c
-	// 	return nil
-	// }); err != nil {
-	// 	return fmt.Errorf(" Raw 取得 *mssql.Conn 失敗: %w", err)
-	// }
-
-	// 建立 Bulk：只需呼叫一次 CreateBulk，之後 AddRow() & Done()
-	bulk := mssqlConn.CreateBulk(tableName, cols)
-
-	// 4. 一筆一筆將 conversion 後的資料送給 BulkCopy
-	for idx, rowVals := range convertedRows {
-		if err := bulk.AddRow(rowVals); err != nil {
-			return fmt.Errorf(" Bulk AddRow 第 %d 筆失敗: %w", idx, err)
-		}
-	}
-
-	// 5. 呼叫 Done() 一次性 Flush 到 SQL Server
-	if _, err := bulk.Done(); err != nil {
-		return fmt.Errorf(" Bulk Done 失敗: %w", err)
-	}
-
-	return nil
-}
-
-// 在 Processor 結構下新增：
-
-func (p *Processor) batchUpsertWithMerge(ctx context.Context, tx *gorm.DB, tableName string, rawDatas []map[string]interface{}) error {
-
-	// 1. 先從 GORM 拿底層的 *sql.DB
+// batchUpsertWithMerge：在同一條 *mssql.Conn 底下完成
+// 1) 建 temp table (#…)
+// 2) BulkCopy 寫入 temp table
+// 3) MERGE 回正式 table
+// 4) DROP temp table
+func (p *Processor) batchUpsertWithMerge(ctx context.Context, tableName string, rawDatas []map[string]interface{}) error {
+	// 1. 先從 GORM 拿到 *sql.DB
 	sqlDB, err := p.db.DB()
 	if err != nil {
 		return fmt.Errorf("無法從 GORM 拿到 *sql.DB: %w", err)
 	}
 
-	// 2. 要求一條專屬連線，保證 temp table 存活在這個 session 裡
+	// 2. 要求一條專屬 *sql.Conn，保證 temp table 存活在這個 session 裡
 	sqlConn, err := sqlDB.Conn(ctx)
 	if err != nil {
 		return fmt.Errorf("建立 *sql.Conn 失敗: %w", err)
 	}
 	defer sqlConn.Close()
 
-	// 3. 把 *sql.Conn 轉成 *mssql.Conn，以便後面用 BulkCopy
+	// 3. 把 *sql.Conn 轉成 *mssql.Conn，以利後續 BulkCopy、ExecContext 等操作
 	var mssqlConn *mssql.Conn
 	if err := sqlConn.Raw(func(driverConn interface{}) error {
 		c, ok := driverConn.(*mssql.Conn)
@@ -349,36 +195,75 @@ func (p *Processor) batchUpsertWithMerge(ctx context.Context, tx *gorm.DB, table
 		return fmt.Errorf("從 *sql.Conn 取得 *mssql.Conn 失敗: %w", err)
 	}
 
-	////////////////
-	// 1. 產生一組 UUID，去掉 dash 後當作 suffix
+	// 4. 在同一個 mssqlConn session 上，用 ExecContext 建立 temp table
 	rawUUID := uuid.New().String()
-	uid := strings.ReplaceAll(rawUUID, "-", "") // e.g. "550e8400e29b41d4a716446655440000"
-
-	// 2. 拼出 local temp table 名稱
+	uid := strings.ReplaceAll(rawUUID, "-", "")
 	tempTable := fmt.Sprintf("#%s_Stagin_%s", tableName, uid)
-	//    如果 tableName = "MyTable"，就會變成 "#MyTable_Stagin_550e8400e29b41d4a716446655440000"
-
-	// 3. 用 SELECT INTO 複製 MyTable 結構到 tempTable
-	createTempSQL := fmt.Sprintf("SELECT TOP 1 * INTO %s FROM %s WHERE 1=0;", tempTable, tableName)
-	if err := tx.Exec(createTempSQL).Error; err != nil {
+	createTempSQL := fmt.Sprintf("SELECT TOP 0 * INTO %s FROM %s;", tempTable, tableName)
+	if _, err := sqlConn.ExecContext(ctx, createTempSQL); err != nil {
 		return fmt.Errorf("建立 temp table %s 失敗: %w", tempTable, err)
 	}
-
-	// 4. 把 rawDatas (不需要自行塞 BatchID) 寫入這張唯一的 tempTable
-	//    由於 tempTable 欄位和 MyTable 一樣，直接 BulkCopy 就能對上
-	if err := p.batchInsertBulkCopy(ctx, mssqlConn, tempTable, tableName, rawDatas); err != nil {
-		return err
+	// 5. 如果 rawDatas 為空，直接 drop temp table 並結束
+	if len(rawDatas) == 0 {
+		if _, err := sqlConn.ExecContext(ctx, fmt.Sprintf("DROP TABLE %s;", tempTable)); err != nil {
+			return fmt.Errorf("刪除 temp table %s 失敗: %w", tempTable, err)
+		}
+		return nil
 	}
 
-	// 5. 拿 MyTable 欄位資訊，準備 MERGE 語法
+	// 6. 準備 BulkCopy：先取得正式表 (tableName) 的欄位清單
 	columnTypes, err := p.getColumnTypesOnce(ctx, tableName)
 	if err != nil {
 		return fmt.Errorf("取得 %s 欄位資訊失敗: %w", tableName, err)
 	}
+	sort.Slice(columnTypes, func(i, j int) bool {
+		return columnTypes[i].Name() < columnTypes[j].Name()
+	})
+	cols := make([]string, len(columnTypes))
+	colTypeMap := make(map[string]gorm.ColumnType, len(columnTypes))
+	for i, ct := range columnTypes {
+		cols[i] = ct.Name()
+		colTypeMap[ct.Name()] = ct
+	}
 
-	// 5.1. 收集所有欄位名稱、主鍵欄位
-	var allCols []string // e.g. ["ColA", "ColB", "ColC", ...]
-	var keyCols []string // e.g. ["KeyColA", "KeyColB"]
+	// 7. 把 rawDatas 轉成 [][]interface{} 以供 BulkCopy 使用
+	convertedRows := make([][]interface{}, 0, len(rawDatas))
+	for rowIdx, row := range rawDatas {
+		vals := make([]interface{}, len(cols))
+		anyValue := false
+		for i, col := range cols {
+			rawVal, exists := row[col]
+			if !exists {
+				vals[i] = nil
+				continue
+			}
+			conv, convErr := convertValue(rawVal, colTypeMap[col])
+			if convErr != nil {
+				return fmt.Errorf("第 %d 筆，欄位 %s 轉換失敗: %w", rowIdx, col, convErr)
+			}
+			if conv != nil {
+				anyValue = true
+			}
+			vals[i] = conv
+		}
+		if anyValue {
+			convertedRows = append(convertedRows, vals)
+		}
+	}
+
+	// 8. 建立 BulkCopy 物件，把資料寫進 tempTable
+	bulk := mssqlConn.CreateBulk(tempTable, cols)
+	for idx, rowVals := range convertedRows {
+		if err := bulk.AddRow(rowVals); err != nil {
+			return fmt.Errorf(" Bulk AddRow 第 %d 筆失敗: %w", idx, err)
+		}
+	}
+	if _, err := bulk.Done(); err != nil {
+		return fmt.Errorf(" Bulk Done 失敗: %w", err)
+	}
+
+	// 9. 組合 MERGE 語法並執行
+	var allCols, keyCols []string
 	for _, ct := range columnTypes {
 		allCols = append(allCols, ct.Name())
 		if isPK, _ := ct.PrimaryKey(); isPK {
@@ -388,14 +273,14 @@ func (p *Processor) batchUpsertWithMerge(ctx context.Context, tx *gorm.DB, table
 	sort.Strings(allCols)
 	sort.Strings(keyCols)
 
-	// 5.2. 組 ON 條件：T.PK = S.PK
+	// 9.1 ON 條件：T.PK = S.PK
 	var joinConds []string
 	for _, k := range keyCols {
 		joinConds = append(joinConds, fmt.Sprintf("T.%s = S.%s", k, k))
 	}
 	onClause := strings.Join(joinConds, " AND ")
 
-	// 5.3. 組 UPDATE 子句：所有非主鍵欄位
+	// 9.2 UPDATE 子句：非 PK 欄位全部更新
 	var updateCols []string
 	for _, col := range allCols {
 		isPrimary := false
@@ -412,7 +297,7 @@ func (p *Processor) batchUpsertWithMerge(ctx context.Context, tx *gorm.DB, table
 	}
 	updateClause := strings.Join(updateCols, ", ")
 
-	// 5.4. 組 INSERT 欄位與 VALUES
+	// 9.3 INSERT 欄位列表與 VALUES 列表
 	insertCols := strings.Join(allCols, ", ")
 	var insertVals []string
 	for _, col := range allCols {
@@ -420,7 +305,6 @@ func (p *Processor) batchUpsertWithMerge(ctx context.Context, tx *gorm.DB, table
 	}
 	insertValsClause := strings.Join(insertVals, ", ")
 
-	// 6. 組 MERGE SQL
 	mergeSQL := fmt.Sprintf(`
 MERGE INTO %s AS T
 USING %s AS S
@@ -434,14 +318,13 @@ WHEN NOT MATCHED THEN
 		updateClause,
 		insertCols, insertValsClause,
 	)
-
-	if err := tx.Exec(mergeSQL).Error; err != nil {
+	if _, err := sqlConn.ExecContext(ctx, mergeSQL); err != nil {
 		return fmt.Errorf("執行 MERGE 失敗: %w", err)
 	}
 
-	// 7. MERGE 完後，把這張 temp table DROP 掉
+	// 10. Merge 完後，DROP 掉這張 temp table
 	dropSQL := fmt.Sprintf("DROP TABLE %s;", tempTable)
-	if err := tx.Exec(dropSQL).Error; err != nil {
+	if _, err := sqlConn.ExecContext(ctx, dropSQL); err != nil {
 		return fmt.Errorf("DROP temp table %s 失敗: %w", tempTable, err)
 	}
 
@@ -520,8 +403,8 @@ func (p *Processor) DmlLogProcess(ctx context.Context, body []byte) error {
 		}
 	}
 
-	// 開啟transaction
-	/*------------------ Transaction Start-----------------------*/
+	/*------------------ Delete Start-----------------------*/
+	// 開啟 transaction
 	tx := p.db.WithContext(ctx).Begin()
 	if err := tx.Error; err != nil {
 		return fmt.Errorf("開啟 transaction 失敗：%w", err)
@@ -536,7 +419,6 @@ func (p *Processor) DmlLogProcess(ctx context.Context, body []byte) error {
 		}
 	}()
 
-	// 先 Delete 再 Insert
 	// 執行 Delete (利用 p.getColumnTypesOnce 取 primary key )
 	for idx, e := range deletes {
 		tableName, ok := e.Data["TableName"].(string)
@@ -580,7 +462,14 @@ func (p *Processor) DmlLogProcess(ctx context.Context, body []byte) error {
 		}
 	}
 
-	// 執行 Insert
+	// Commit
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("commit 失敗：%w", err)
+	}
+	/*------------------ Delete End-----------------------*/
+
+	/*------------------ Insert Start-----------------------*/
+	// 注意，Upsert 是在完全不同的 mssqlConn 連線，所以跟 Delete 不會綁一起
 	// 把所有要 Insert 的依照 tableName 分組
 	insertGroups := make(map[string][]map[string]interface{})
 
@@ -606,26 +495,14 @@ func (p *Processor) DmlLogProcess(ctx context.Context, body []byte) error {
 
 		insertGroups[tableName] = append(insertGroups[tableName], data)
 	}
-	/*// 針對每個 tableName，一次批次插入整組資料
-	for tableName, datas := range insertGroups {
-		if err := p.batchInsertBulkCopy(ctx, tx, tableName, datas); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}*/
 
 	// 針對每個 tableName，一次批次先寫 staging，再 MERGE，再清空 staging
 	for tableName, datas := range insertGroups {
-		if err := p.batchUpsertWithMerge(ctx, tx, tableName, datas); err != nil {
-			tx.Rollback()
-			return err
+		if err := p.batchUpsertWithMerge(ctx, tableName, datas); err != nil {
+			return fmt.Errorf(" Upsert 失敗 (table=%s): %w", tableName, err)
 		}
 	}
-	// Commit
-	if err := tx.Commit().Error; err != nil {
-		return fmt.Errorf("commit 失敗：%w", err)
-	}
-	/*------------------ Transaction End-----------------------*/
+	/*------------------ Insert End-----------------------*/
 
 	return nil
 

@@ -73,7 +73,7 @@ func main() {
 	proc := service.NewProcessor(db)
 
 	// 9. 建立 consumer 列表
-	consumerCount := 1
+	consumerCount := 10
 	consumers := make([]*mq.Consumer, 0, consumerCount)
 
 	for i := 0; i < consumerCount; i++ {
