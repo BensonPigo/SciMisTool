@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import "./App.css";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import Login from "./Login";
-import Register from "./Register";
-import ForgetPassword from "./ForgetPassword";
-import Home from "./Home";
+import Login from "./components/Login/Login";
+import Register from "./components/Register/Register";
+import ForgetPassword from "./components/ForgetPassword/ForgetPassword";
+import Home from "./components/Home/Home";
 import { getAccessToken } from "./utils/token";
-import ProtectedRoute from "./ProtectedRoute";
+import ProtectedRoute from "./utils/ProtectedRoute";
 
 const App = () => {
   const [token, setToken] = useState(getAccessToken());

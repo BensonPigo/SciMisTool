@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch Go Package",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",                    // 或 "auto"
+      "program": "${workspaceFolder}",    // 你的 main.go 所在資料夾
+      "env": {},                          // 如需自訂環境變數可在這裡設定
+      "args": []                          // Command-line 參數
+    }
+  ]
+}

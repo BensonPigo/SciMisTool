@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link,useNavigate } from "react-router-dom";
-import { createApiClient } from "./apiClient";
+import {createApiClient} from "../../utils/apiClient"
 import "./ForgetPassword.css"; // 引用樣式
 
 const ForgetPassword = () => {

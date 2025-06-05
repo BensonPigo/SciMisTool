@@ -1,7 +1,7 @@
 // Home.js
 import React, { useState, useEffect } from "react";
-import Menu from "./Menu";
-import apiClient from "./apiClient";
+import Menu from "../../utils/Menu";
+import apiClient from "../../utils/apiClient";
 import { useNavigate } from "react-router-dom";
 import DataTable from "react-data-table-component";
 import "./Home.css";

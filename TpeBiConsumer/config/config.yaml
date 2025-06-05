@@ -1,0 +1,31 @@
+process_ddl_interval: "15s"    # 每 5 分鐘執行一次DDL批次處理
+process_dml_interval: "1h"    # 每 1 小時小時執行一次DML批次處理
+process_timeout: "1m"    # 單次批次處理timeout 為30秒
+log_file_name: "1m"    # 單次批次處理timeout 為30秒
+
+mq:
+  # RabbitMQ 連線 URL（含使用 TLS 時的 amqps）
+  amqp_url:     "amqps://root:admin1234@localhost:5671/"
+  # Exchange 名稱
+  exchange:     "global_direct"
+  # TLS 憑證檔案路徑
+  cert_file:    "certs/PmsApClient.crt"
+  key_file:     "certs/PmsApClient.key"
+  ca_cert_file: "certs/ca.crt"
+  # 連線逾時 (字串)，程式裡用 time.ParseDuration 解析
+  timeout:      "5s"
+
+db:
+  host:      "testing"
+  instance:  "PMS"
+  # SQL Server 連接埠 (預設 1433)
+  port:         1433
+  # 登入帳號、密碼
+  user:         "SCIMIS"
+  password:     "27128299"
+  # Initial Catalog
+  name:         "PBIReportData"
+  # 加密方式 (disable 或 require)
+  encrypt:      "disable"
+  # 連線逾時 (字串)，程式裡用 time.ParseDuration 解析
+  timeout:      "5s"
