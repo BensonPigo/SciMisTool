@@ -86,13 +86,13 @@ func NewMQClient(cfg config.MQConfig) (*MQClient, error) {
 	// 1. 宣告 Dead Letter Exchange
 	// ============================
 	err = ch.ExchangeDeclare(
-		"ddl_dlx_exchange", // DLX 的 Exchange 名稱
-		"direct",           // 使用 direct 類型
-		true,               // durable
-		false,              // auto-deleted
-		false,              // internal
-		false,              // no-wait
-		nil,                // arguments
+		"ddldml_dlx_exchange", // DLX 的 Exchange 名稱
+		"direct",              // 使用 direct 類型
+		true,                  // durable
+		false,                 // auto-deleted
+		false,                 // internal
+		false,                 // no-wait
+		nil,                   // arguments
 	)
 	if err != nil {
 		return nil, fmt.Errorf("宣告 Dead Letter Exchange 失敗: %w", err)
@@ -101,21 +101,21 @@ func NewMQClient(cfg config.MQConfig) (*MQClient, error) {
 	// 2. 宣告 Dead Letter Queue 並綁定到上面的 DLX（dead_ddl_queue）
 	// =================================================
 	deadQ, err := ch.QueueDeclare(
-		"ddl_dead_queue", // DLQ 名稱
-		true,             // durable
-		false,            // auto-delete
-		false,            // exclusive
-		false,            // no-wait
-		nil,              // arguments
+		"ddl_dml_dead_queue", // DLQ 名稱
+		true,                 // durable
+		false,                // auto-delete
+		false,                // exclusive
+		false,                // no-wait
+		nil,                  // arguments
 	)
 	if err != nil {
 		return nil, fmt.Errorf("宣告 Dead Letter Queue 失敗: %w", err)
 	}
-	// 將 dead_ddl_queue 綁定到 ddl_dlx_exchange，routing key 為 "dead_ddl"
+	// 將 dead_ddl_queue 綁定到 ddl_dlx_exchange，routing key 為 "dead_ddldml"
 	err = ch.QueueBind(
 		deadQ.Name,
-		"dead_ddl",         // Dead Letter RoutingKey
-		"ddl_dlx_exchange", // Dead Letter Exchange 名稱
+		"dead_ddldml",         // Dead Letter RoutingKey
+		"ddldml_dlx_exchange", // Dead Letter Exchange 名稱
 		false,
 		nil,
 	)
@@ -126,73 +126,44 @@ func NewMQClient(cfg config.MQConfig) (*MQClient, error) {
 	// 3. 宣告 Primary Exchange（global_direct）
 	// ============================
 	err = ch.ExchangeDeclare(
-		"global_direct", // Exchange name
-		"direct",        // type
-		true,            // durable
-		false,           // auto-deleted
-		false,           // internal
-		false,           // no-wait
-		nil,             // arguments
+		"bi_direct", // Exchange name
+		"direct",    // type
+		true,        // durable
+		false,       // auto-deleted
+		false,       // internal
+		false,       // no-wait
+		nil,         // arguments
 	)
 	if err != nil {
 		return nil, fmt.Errorf("宣告 Primary Exchange 失敗: %w", err)
 	}
 
 	// =====================================================
-	// 4. 宣告 Primary Queue（ddl_queue），並加上 Dead Letter 設定
+	// 4. 宣告 Primary Queue（ddl_dml_main_queue），並加上 Dead Letter 設定
 	// =====================================================
-	//    當 consumer Nack(false,false) 時，訊息會自動透過以下參數送到 ddl_dlx_exchange
+	//    當 consumer Nack(false,false) 時，訊息會自動透過以下參數送到 ddldml_dlx_exchange
 	args := amqp.Table{
-		"x-dead-letter-exchange":    "ddl_dlx_exchange", // 指定死信 Exchange
-		"x-dead-letter-routing-key": "dead_ddl",         // 指定 routing key
+		"x-dead-letter-exchange":    "ddldml_dlx_exchange", // 指定死信 Exchange
+		"x-dead-letter-routing-key": "dead_ddldml",         // 指定 routing key
 	}
 	q, err := ch.QueueDeclare(
-		"ddl_queue", // queue 名稱
-		true,        // durable
-		false,       // auto-delete
-		false,       // exclusive
-		false,       // no-wait
-		args,        // 這裡帶入 DLX 參數
+		"ddl_dml_main_queue", // queue 名稱
+		true,                 // durable
+		false,                // auto-delete
+		false,                // exclusive
+		false,                // no-wait
+		args,                 // 這裡帶入 DLX 參數
 	)
 	if err != nil {
 		return nil, fmt.Errorf("宣告 Primary Queue 失敗: %w", err)
 	}
-
-	/*------------------Dead Letter Queue------------------*/
-
-	// Exchange 宣告
-	// err = ch.ExchangeDeclare(
-	// 	"global_direct", // Exchange name
-	// 	"direct",        // type
-	// 	true,            // durable
-	// 	false,           // auto-deleted
-	// 	false,           // internal
-	// 	false,           // no-wait
-	// 	nil,             // arguments
-	// )
-	// if err != nil {
-	// 	return nil, fmt.Errorf("宣告 Exchange 失敗: %w", err)
-	// }
-
-	// Queue 宣告
-	// q, err := ch.QueueDeclare(
-	// 	"ddl_queue", // queue 名稱
-	// 	true,        // durable
-	// 	false,       // auto-delete
-	// 	false,       // exclusive
-	// 	false,       // no-wait
-	// 	nil,         // arguments
-	// )
-	// if err != nil {
-	// 	return nil, fmt.Errorf("開啟 Channel 失敗: %w", err)
-	// }
 
 	// Bind 多個 RoutingKey 到這個 Queue
 	for _, routingKey := range AllRoutingKeys {
 		err := ch.QueueBind(
 			q.Name,
 			string(routingKey), // 注意要轉成 string
-			"global_direct",
+			"bi_direct",
 			false, nil,
 		)
 		if err != nil {

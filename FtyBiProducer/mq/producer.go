@@ -72,35 +72,35 @@ func NewMQClient(cfg config.MQConfig) (*MQClient, error) {
 	// ================================
 	// 4.1 宣告 DLX（死信交換機）
 	if err := ch.ExchangeDeclare(
-		"ddl_dlx_exchange", // DLX 名稱，與 Consumer 端一致
-		"direct",           // 類型
-		true,               // durable
-		false,              // auto-delete
-		false,              // internal
-		false,              // no-wait
-		nil,                // arguments
+		"ddldml_dlx_exchange", // DLX 名稱，與 Consumer 端一致
+		"direct",              // 類型
+		true,                  // durable
+		false,                 // auto-delete
+		false,                 // internal
+		false,                 // no-wait
+		nil,                   // arguments
 	); err != nil {
 		return nil, fmt.Errorf("宣告 Dead Letter Exchange 失敗: %w", err)
 	}
 
 	// 4.2 宣告 DLQ（死信佇列）
 	deadQ, err := ch.QueueDeclare(
-		"ddl_dead_queue", // DLQ 名稱，與 Consumer 端一致
-		true,             // durable
-		false,            // auto-delete
-		false,            // exclusive
-		false,            // no-wait
-		nil,              // arguments
+		"ddl_dml_dead_queue", // DLQ 名稱，與 Consumer 端一致
+		true,                 // durable
+		false,                // auto-delete
+		false,                // exclusive
+		false,                // no-wait
+		nil,                  // arguments
 	)
 	if err != nil {
 		return nil, fmt.Errorf("宣告 Dead Letter Queue 失敗: %w", err)
 	}
 
-	// 4.3 綁定 DLQ 到 DLX，routing key 為 "dead_ddl"
+	// 4.3 綁定 DLQ 到 DLX，routing key 為 "dead_ddldml"
 	if err := ch.QueueBind(
 		deadQ.Name,
-		"dead_ddl",         // Dead Letter RoutingKey
-		"ddl_dlx_exchange", // Dead Letter Exchange 名稱
+		"dead_ddldml",         // Dead Letter RoutingKey
+		"ddldml_dlx_exchange", // Dead Letter Exchange 名稱
 		false,
 		nil,
 	); err != nil {
@@ -111,31 +111,31 @@ func NewMQClient(cfg config.MQConfig) (*MQClient, error) {
 	// 5. 宣告主 Exchange（global_direct）
 	// ================================
 	if err := ch.ExchangeDeclare(
-		"global_direct", // 主交換機名稱（與 Consumer 一致）
-		"direct",        // 類型
-		true,            // durable
-		false,           // auto-delete
-		false,           // internal
-		false,           // no-wait
-		nil,             // arguments
+		"bi_direct", // 主交換機名稱
+		"direct",    // 類型
+		true,        // durable
+		false,       // auto-delete
+		false,       // internal
+		false,       // no-wait
+		nil,         // arguments
 	); err != nil {
 		return nil, fmt.Errorf("宣告 Exchange 失敗: %w", err)
 	}
 
 	// =========================================
-	// 6. 宣告主 Queue（ddl_queue），並帶入 DLX 參數
+	// 6. 宣告主 Queue（ddl_dml_main_queue），並帶入 DLX 參數
 	// =========================================
 	DLXArgs := amqp.Table{
-		"x-dead-letter-exchange":    "ddl_dlx_exchange", // 與 Consumer 相同
-		"x-dead-letter-routing-key": "dead_ddl",         // 與 Consumer 相同
+		"x-dead-letter-exchange":    "ddldml_dlx_exchange", // 與 Consumer 相同
+		"x-dead-letter-routing-key": "dead_ddldml",         // 與 Consumer 相同
 	}
 	q, err := ch.QueueDeclare(
-		"ddl_queue", // queue 名稱
-		true,        // durable
-		false,       // auto-delete
-		false,       // exclusive
-		false,       // no-wait
-		DLXArgs,     // ※ 帶入 DLX 參數（原本為 nil，已改為 DLXArgs）:contentReference[oaicite:0]{index=0}
+		"ddl_dml_main_queue", // queue 名稱
+		true,                 // durable
+		false,                // auto-delete
+		false,                // exclusive
+		false,                // no-wait
+		DLXArgs,              // ※ 帶入 DLX 參數（原本為 nil，已改為 DLXArgs）:contentReference[oaicite:0]{index=0}
 	)
 	if err != nil {
 		return nil, fmt.Errorf("宣告 Primary Queue 失敗: %w", err)
@@ -147,7 +147,7 @@ func NewMQClient(cfg config.MQConfig) (*MQClient, error) {
 		if err := ch.QueueBind(
 			q.Name,
 			string(routingKey), // 轉成 string 後對應 queue 中的 Binding
-			"global_direct",    // 與 Consumer 端相同的 Exchange
+			"bi_direct",        // 與 Consumer 端相同的 Exchange
 			false,
 			nil,
 		); err != nil {
@@ -165,7 +165,7 @@ func (c *MQClient) Publish(ctx context.Context, routingKey RoutingKey, body []by
 	// 發送
 	if err := c.ch.PublishWithContext(
 		ctx,
-		"global_direct",    // 改成自訂的 Exchange
+		"bi_direct",        // 改成自訂的 Exchange
 		string(routingKey), // routingKey = queue 名稱
 		false,              // mandatory
 		false,              // immediate
