@@ -20,9 +20,10 @@ import (
 )
 
 type Config struct {
-	FactoryID      string `json:"FactoryId"`
-	ScriptRootPath string `json:"ScriptRootPath"`
-	TcpPort        int    `json:"TcpPort"`
+	FactoryID       string            `json:"FactoryId"`
+	ScriptRootPath  string            `json:"ScriptRootPath"`
+	TcpPort         int               `json:"TcpPort"`
+	ServiceLogPaths map[string]string `json:"ServiceLogPaths"`
 }
 
 // 緩存配置以避免重複讀取
@@ -38,6 +39,7 @@ func Init(env *string) {
 	config.FactoryID = vp.GetString("FactoryID")
 	config.ScriptRootPath = vp.GetString("ScriptRootPath")
 	config.TcpPort = vp.GetInt("TcpPort")
+	config.ServiceLogPaths = vp.GetStringMapString("ServiceLogPaths")
 }
 
 // server 結構實現 TaskExecutorServer 介面
@@ -95,6 +97,20 @@ func (s *server) GetScripts(ctx context.Context, empty *pb.Empty) (*pb.GetScript
 		FactoryId:   config.FactoryID,
 		ScriptFiles: ps1Files,
 	}, nil
+}
+
+// GetServiceLog fetches log content for a specific service and date
+func (s *server) GetServiceLog(ctx context.Context, req *pb.GetServiceLogRequest) (*pb.GetServiceLogResponse, error) {
+	dir, ok := config.ServiceLogPaths[req.ServiceName]
+	if !ok {
+		return nil, fmt.Errorf("service not found")
+	}
+	filePath := filepath.Join(dir, req.Date+".log")
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.GetServiceLogResponse{LogContent: string(data)}, nil
 }
 
 // 根據 taskName 獲取腳本路徑
