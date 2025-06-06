@@ -27,7 +27,7 @@ func NewFileLogger() (*zap.Logger, error) {
 	//    ./logs/app-YYYY-MM-DD.log，並將最近 7 天的檔案保留，
 	//    並且在 ./logs/app.log 指向當前的檔名
 	logDir := "./logs"
-	baseName := "app"
+	baseName := "TpeBiConsumer"
 	// 使用時間格式字串：%Y-%m-%d 代表年月日
 	pattern := filepath.Join(logDir, baseName+"-%Y-%m-%d.log")
 
