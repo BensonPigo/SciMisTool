@@ -116,7 +116,7 @@ func (s *server) GetServiceLog(ctx context.Context, req *pb.GetServiceLogRequest
 	}
 	normalized := t.Format("2006-01-02")
 
-	filePath := filepath.Join(dir, normalized+".log")
+	filePath := dir + normalized + ".log"
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
