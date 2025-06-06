@@ -185,7 +185,7 @@ func (c *MQClient) Publish(ctx context.Context, routingKey RoutingKey, body []by
 			return nil
 		}
 		return fmt.Errorf("訊息被 broker Nack, Tag=%d", confirm.DeliveryTag)
-	case <-time.After(10 * time.Second):
+	case <-time.After(c.cfg.ConfirmTimeout):
 		return fmt.Errorf("publisher Confirm 超時")
 	case <-ctx.Done():
 		return ctx.Err()

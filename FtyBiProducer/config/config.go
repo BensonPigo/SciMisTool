@@ -16,6 +16,7 @@ type MQConfig struct {
 	KeyFile              string        `mapstructure:"key_file"     yaml:"key_file"`
 	CACertFile           string        `mapstructure:"ca_cert_file" yaml:"ca_cert_file"`
 	Timeout              time.Duration `mapstructure:"timeout"      yaml:"timeout"`
+	ConfirmTimeout       time.Duration `mapstructure:"confirm_timeout" yaml:"confirm_timeout"`
 	DeadLetterExchange   string        `mapstructure:"dead_letter_exchange" yaml:"dead_letter_exchange"`
 	DeadLetterQueue      string        `mapstructure:"dead_letter_queue" yaml:"dead_letter_queue"`
 	DeadLetterRoutingKey string        `mapstructure:"dead_letter_routing_key" yaml:"dead_letter_routing_key"`
@@ -24,14 +25,15 @@ type MQConfig struct {
 }
 
 type DBConfig struct {
-	Host     string        `mapstructure:"host"     yaml:"host"`     // 原來的 db_host
-	Instance string        `mapstructure:"instance" yaml:"instance"` // 原來的 db_instance
-	Port     int           `mapstructure:"port"     yaml:"port"`
-	User     string        `mapstructure:"user"     yaml:"user"`     // 原來的 db_user
-	Password string        `mapstructure:"password" yaml:"password"` // 原來的 db_password
-	Name     string        `mapstructure:"name"     yaml:"name"`     // 原來的 db_name
-	Encrypt  string        `mapstructure:"encrypt"  yaml:"encrypt"`  // 原來的 db_encrypt
-	Timeout  time.Duration `mapstructure:"timeout"  yaml:"timeout"`  // 原來的 db_timeout
+	Host         string        `mapstructure:"host"     yaml:"host"`     // 原來的 db_host
+	Instance     string        `mapstructure:"instance" yaml:"instance"` // 原來的 db_instance
+	Port         int           `mapstructure:"port"     yaml:"port"`
+	User         string        `mapstructure:"user"     yaml:"user"`               // 原來的 db_user
+	Password     string        `mapstructure:"password" yaml:"password"`           // 原來的 db_password
+	Name         string        `mapstructure:"name"     yaml:"name"`               // 原來的 db_name
+	Encrypt      string        `mapstructure:"encrypt"  yaml:"encrypt"`            // 原來的 db_encrypt
+	Timeout      time.Duration `mapstructure:"timeout"       yaml:"timeout"`       // 原來的 db_timeout
+	QueryTimeout time.Duration `mapstructure:"query_timeout" yaml:"query_timeout"` // 新增的 query_timeout
 }
 
 type PrometheusConfig struct {
@@ -68,6 +70,7 @@ func LoadConfig(path string) (*Config, error) {
 	v.BindEnv("mq.dead_letter_routing_key")
 	v.BindEnv("mq.primary_exchange")
 	v.BindEnv("mq.primaryqueue")
+	v.BindEnv("mq.confirm_timeout")
 
 	v.BindEnv("db.host")
 	v.BindEnv("db.instance")
@@ -77,6 +80,7 @@ func LoadConfig(path string) (*Config, error) {
 	v.BindEnv("db.name")
 	v.BindEnv("db.encrypt")
 	v.BindEnv("db.timeout")
+	v.BindEnv("db.query_timeout")
 
 	v.BindEnv("prometheus.metrics_port")
 
