@@ -14,6 +14,8 @@ import (
 	"flag"
 
 	"path/filepath"
+	"strings"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -105,7 +107,16 @@ func (s *server) GetServiceLog(ctx context.Context, req *pb.GetServiceLogRequest
 	if !ok {
 		return nil, fmt.Errorf("service not found")
 	}
-	filePath := filepath.Join(dir, req.Date+".log")
+
+	cleaned := strings.ReplaceAll(req.Date, "-", "")
+	cleaned = strings.ReplaceAll(cleaned, "/", "")
+	t, err := time.Parse("20060102", cleaned)
+	if err != nil {
+		return nil, fmt.Errorf("invalid date format: %v", err)
+	}
+	normalized := t.Format("2006-01-02")
+
+	filePath := filepath.Join(dir, normalized+".log")
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
