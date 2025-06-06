@@ -8,6 +8,7 @@ option go_package = "proto/taskexecutor";
 service TaskExecutor {
   rpc ExecuteTask(TaskRequest) returns (TaskResponse);
   rpc GetScripts(Empty) returns (GetScriptsResponse);
+  rpc GetServiceLog(GetServiceLogRequest) returns (GetServiceLogResponse);
 }
 
 // 定義請求與回應
@@ -26,5 +27,15 @@ message GetScriptsResponse {
   string FactoryId = 1; // /工廠ID
   repeated string scriptFiles = 2; // 腳本檔案清單
 }
+
+message GetServiceLogRequest {
+  string serviceName = 1;
+  string date        = 2;
+}
+
+message GetServiceLogResponse {
+  string logContent = 1;
+}
+
 
 message Empty {}
