@@ -6,13 +6,13 @@ type RoutingKey string
 
 // 一組可用的 RoutingKey 列舉
 const (
-	RoutingKeyProducerDDL RoutingKey = "producer_ddl.key"
-	RoutingKeyProducerDML RoutingKey = "producer_dml.key"
+	RoutingKeyDDL RoutingKey = "bi_ddl.key"
+	RoutingKeyDML RoutingKey = "bi_dml.key"
 	// 若日後擴充，只要在這裡新增一行
 )
 
 // AllRoutingKeys 幫助批次綁定時迭代
 var AllRoutingKeys = []RoutingKey{
-	RoutingKeyProducerDDL,
-	RoutingKeyProducerDML,
+	RoutingKeyDDL,
+	RoutingKeyDML,
 }

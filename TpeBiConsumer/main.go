@@ -91,9 +91,9 @@ func main() {
 		err := c.Start(ctx, func(ctx context.Context, routingKey string, body []byte) error {
 			sugar.Infof("[Consumer %d] 收到訊息，RoutingKey=%s", idx, routingKey)
 			switch routingKey {
-			case string(mq.RoutingKeyProducerDDL):
+			case string(mq.RoutingKeyDDL):
 				return proc.DdlLogProcess(ctx, body)
-			case string(mq.RoutingKeyProducerDML):
+			case string(mq.RoutingKeyDML):
 				return proc.DmlLogProcess(ctx, body)
 			default:
 				return fmt.Errorf("無效 routing key: %s", routingKey)

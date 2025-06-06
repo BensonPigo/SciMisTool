@@ -80,7 +80,7 @@ func (p *Processor) DdlLogProcess(ctx context.Context, logCtn *int) error {
 		}
 
 		// 發送消息
-		if err := p.mqClient.Publish(ctx, mq.RoutingKeyProducerDDL, jsonBytes); err != nil {
+		if err := p.mqClient.Publish(ctx, mq.RoutingKeyDDL, jsonBytes); err != nil {
 			return fmt.Errorf("發送 MQ 訊息失敗：%w", err)
 		}
 
@@ -149,7 +149,7 @@ func (p *Processor) DmlLogProcess(ctx context.Context, logCtn *int) error {
 		}
 
 		// 發送消息
-		if err := p.mqClient.Publish(ctx, mq.RoutingKeyProducerDML, jsonBytes); err != nil {
+		if err := p.mqClient.Publish(ctx, mq.RoutingKeyDML, jsonBytes); err != nil {
 			return fmt.Errorf("發送 MQ 訊息失敗：%w", err)
 		}
 
