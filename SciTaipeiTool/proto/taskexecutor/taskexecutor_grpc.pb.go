@@ -19,8 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	TaskExecutor_ExecuteTask_FullMethodName = "/taskexecutor.TaskExecutor/ExecuteTask"
-	TaskExecutor_GetScripts_FullMethodName  = "/taskexecutor.TaskExecutor/GetScripts"
+	TaskExecutor_ExecuteTask_FullMethodName   = "/taskexecutor.TaskExecutor/ExecuteTask"
+	TaskExecutor_GetScripts_FullMethodName    = "/taskexecutor.TaskExecutor/GetScripts"
+	TaskExecutor_GetServiceLog_FullMethodName = "/taskexecutor.TaskExecutor/GetServiceLog"
 )
 
 // TaskExecutorClient is the client API for TaskExecutor service.
@@ -31,6 +32,7 @@ const (
 type TaskExecutorClient interface {
 	ExecuteTask(ctx context.Context, in *TaskRequest, opts ...grpc.CallOption) (*TaskResponse, error)
 	GetScripts(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*GetScriptsResponse, error)
+	GetServiceLog(ctx context.Context, in *GetServiceLogRequest, opts ...grpc.CallOption) (*GetServiceLogResponse, error)
 }
 
 type taskExecutorClient struct {
@@ -61,6 +63,16 @@ func (c *taskExecutorClient) GetScripts(ctx context.Context, in *Empty, opts ...
 	return out, nil
 }
 
+func (c *taskExecutorClient) GetServiceLog(ctx context.Context, in *GetServiceLogRequest, opts ...grpc.CallOption) (*GetServiceLogResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetServiceLogResponse)
+	err := c.cc.Invoke(ctx, TaskExecutor_GetServiceLog_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TaskExecutorServer is the server API for TaskExecutor service.
 // All implementations must embed UnimplementedTaskExecutorServer
 // for forward compatibility.
@@ -69,6 +81,7 @@ func (c *taskExecutorClient) GetScripts(ctx context.Context, in *Empty, opts ...
 type TaskExecutorServer interface {
 	ExecuteTask(context.Context, *TaskRequest) (*TaskResponse, error)
 	GetScripts(context.Context, *Empty) (*GetScriptsResponse, error)
+	GetServiceLog(context.Context, *GetServiceLogRequest) (*GetServiceLogResponse, error)
 	mustEmbedUnimplementedTaskExecutorServer()
 }
 
@@ -84,6 +97,9 @@ func (UnimplementedTaskExecutorServer) ExecuteTask(context.Context, *TaskRequest
 }
 func (UnimplementedTaskExecutorServer) GetScripts(context.Context, *Empty) (*GetScriptsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetScripts not implemented")
+}
+func (UnimplementedTaskExecutorServer) GetServiceLog(context.Context, *GetServiceLogRequest) (*GetServiceLogResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetServiceLog not implemented")
 }
 func (UnimplementedTaskExecutorServer) mustEmbedUnimplementedTaskExecutorServer() {}
 func (UnimplementedTaskExecutorServer) testEmbeddedByValue()                      {}
@@ -142,6 +158,24 @@ func _TaskExecutor_GetScripts_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TaskExecutor_GetServiceLog_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetServiceLogRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TaskExecutorServer).GetServiceLog(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TaskExecutor_GetServiceLog_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TaskExecutorServer).GetServiceLog(ctx, req.(*GetServiceLogRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // TaskExecutor_ServiceDesc is the grpc.ServiceDesc for TaskExecutor service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -156,6 +190,10 @@ var TaskExecutor_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetScripts",
 			Handler:    _TaskExecutor_GetScripts_Handler,
+		},
+		{
+			MethodName: "GetServiceLog",
+			Handler:    _TaskExecutor_GetServiceLog_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
