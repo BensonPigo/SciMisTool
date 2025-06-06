@@ -10,12 +10,17 @@ import (
 )
 
 type MQConfig struct {
-	AMQPURL    string        `mapstructure:"amqp_url"     yaml:"amqp_url"`
-	Exchange   string        `mapstructure:"exchange"     yaml:"exchange"`
-	CertFile   string        `mapstructure:"cert_file"    yaml:"cert_file"`
-	KeyFile    string        `mapstructure:"key_file"     yaml:"key_file"`
-	CACertFile string        `mapstructure:"ca_cert_file" yaml:"ca_cert_file"`
-	Timeout    time.Duration `mapstructure:"timeout"      yaml:"timeout"`
+	AMQPURL              string        `mapstructure:"amqp_url"     yaml:"amqp_url"`
+	Exchange             string        `mapstructure:"exchange"     yaml:"exchange"`
+	CertFile             string        `mapstructure:"cert_file"    yaml:"cert_file"`
+	KeyFile              string        `mapstructure:"key_file"     yaml:"key_file"`
+	CACertFile           string        `mapstructure:"ca_cert_file" yaml:"ca_cert_file"`
+	Timeout              time.Duration `mapstructure:"timeout"      yaml:"timeout"`
+	DeadLetterExchange   string        `mapstructure:"dead_letter_exchange" yaml:"dead_letter_exchange"`
+	DeadLetterQueue      string        `mapstructure:"dead_letter_queue" yaml:"dead_letter_queue"`
+	DeadLetterRoutingKey string        `mapstructure:"dead_letter_routing_key" yaml:"dead_letter_routing_key"`
+	PrimaryExchange      string        `mapstructure:"primary_exchange" yaml:"primary_exchange"`
+	PrimaryQueue         string        `mapstructure:"primaryqueue" yaml:"primaryqueue"`
 }
 
 type DBConfig struct {
@@ -58,6 +63,11 @@ func LoadConfig(path string) (*Config, error) {
 	v.BindEnv("mq.key_file")
 	v.BindEnv("mq.ca_cert_file")
 	v.BindEnv("mq.timeout")
+	v.BindEnv("mq.dead_letter_exchange")
+	v.BindEnv("mq.dead_letter_queue")
+	v.BindEnv("mq.dead_letter_routing_key")
+	v.BindEnv("mq.primary_exchange")
+	v.BindEnv("mq.primaryqueue")
 
 	v.BindEnv("db.host")
 	v.BindEnv("db.instance")
