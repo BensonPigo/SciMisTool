@@ -30,7 +30,7 @@ func InitGormDB(dbCfg DBConfig) (*gorm.DB, error) {
 		host, instance,
 		dbCfg.Name, dbCfg.Encrypt,
 		int(dbCfg.Timeout.Seconds()),
-		30, // 這裡就是 query timeout 單位秒
+		int(dbCfg.QueryTimeout.Seconds()),
 	)
 
 	// 4. 開始連線
