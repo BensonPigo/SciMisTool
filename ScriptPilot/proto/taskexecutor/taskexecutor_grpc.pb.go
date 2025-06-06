@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v5.29.1
-// source: taskexecutor.proto
+// source: proto/taskexecutor.proto
 
 package taskexecutor
 
@@ -197,5 +197,5 @@ var TaskExecutor_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "taskexecutor.proto",
+	Metadata: "proto/taskexecutor.proto",
 }
