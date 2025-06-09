@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "./App.css";
+// Styles migrated to Tailwind
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./components/Login/Login";
 import Register from "./components/Register/Register";

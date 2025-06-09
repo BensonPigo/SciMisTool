@@ -60,5 +60,5 @@ func (h *ServiceLogHandler) GetServiceLog(w http.ResponseWriter, r *http.Request
 
 	w.WriteHeader(http.StatusOK)
 	// 直接寫出 JSON 內容
-	w.Write([]byte(resp.GetLogContent()))
+	w.Write([]byte(resp.LogContent))
 }

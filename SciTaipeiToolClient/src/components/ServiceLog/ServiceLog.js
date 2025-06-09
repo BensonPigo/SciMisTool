@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Menu from "../../utils/Menu";
 import apiClient from "../../utils/apiClient";
 import JsonGrid from "@redheadphone/react-json-grid";
-import "./ServiceLog.css";
+// Styles migrated to Tailwind
 
 const ServiceLog = ({ setToken }) => {
   const navigate = useNavigate();
@@ -11,6 +11,7 @@ const ServiceLog = ({ setToken }) => {
   const [serviceName, setServiceName] = useState("");
   const [logDate, setLogDate] = useState("");
   const [logData, setLogData] = useState(null);
+  const [logSearchText, setlogSearchText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const factoryOptions = (process.env.REACT_APP_FACTORY_IDS || "")
@@ -56,14 +57,15 @@ const ServiceLog = ({ setToken }) => {
   };
 
   return (
-    <div className="home-container">
+    <div className="font-sans p-5 bg-background min-h-screen">
       <Menu setToken={setToken} />
-      <div className="content">
-        <h2>Service Log</h2>
-        <div className="query-section">
+      <div className="max-w-2xl mx-auto bg-white p-5 rounded-lg shadow">
+        <h2 className="text-xl font-bold mb-4">Service Log</h2>
+        <div className="flex flex-wrap items-end gap-2 mb-4">
           <select
             value={factoryId}
             onChange={(e) => setFactoryId(e.target.value)}
+            className="border border-gray-300 rounded p-2 flex-1"
           >
             <option value="">Select Factory</option>
             {factoryOptions.map((f) => (
@@ -75,6 +77,7 @@ const ServiceLog = ({ setToken }) => {
           <select
             value={serviceName}
             onChange={(e) => setServiceName(e.target.value)}
+            className="border border-gray-300 rounded p-2 flex-1"
           >
             <option value="">Select Service</option>
             {serviceOptions.map((s) => (
@@ -87,18 +90,19 @@ const ServiceLog = ({ setToken }) => {
             type="date"
             value={logDate}
             onChange={(e) => setLogDate(e.target.value)}
+            className="border border-gray-300 rounded p-2"
           />
-          <button className="execute-btn" onClick={handleQuery}>
+          <button className="p-2 bg-primary text-white rounded hover:bg-primaryDark" onClick={handleQuery}>
             查詢
           </button>
         </div>
         {isLoading ? (
-          <div className="loading-container">
-            <div className="spinner" />
+          <div className="text-center mt-12">
+            <div className="w-10 h-10 border-4 border-gray-200 border-t-info rounded-full animate-spin mx-auto" />
           </div>
         ) : (
           logData && (
-            <JsonGrid jsonData={logData} enableSearch enableSorting />
+            <JsonGrid data={logData} enableSearch enableSorting />
           )
         )}
       </div>
