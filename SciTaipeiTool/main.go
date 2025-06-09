@@ -112,7 +112,10 @@ func main() {
 			client.Close()
 		}
 	}()
-
+	if len(gRpcClients) == 0 {
+		log.Fatalf("無法載入任何gRPC Client")
+		return
+	}
 	// 密鑰
 	auth.Init(config.Jwt_secret_key)
 
@@ -142,12 +145,6 @@ func main() {
 	router.PATCH("/api/v1/users/ResetPassword", lh.ResetPassword)
 	router.POST("/api/v1/users/RefreshToken", lh.RefreshToken)
 
- if len(gRpcClients) > 0 {
-         slh := &handler.ServiceLogHandler{GRpcClients: gRpcClients}
-         router.GET("/api/service/log", gin.WrapF(slh.GetServiceLog))
- }
-
-
 	// 受保護的路由
 	protected := router.Group("/api/v1")
 	protected.Use(middleware.AuthMiddleware())
@@ -157,6 +154,8 @@ func main() {
 		protected.GET("/GetScripts", h.GetScripts)
 		protected.POST("/users/Logout", lh.Logout)
 
+		slh := &handler.ServiceLogHandler{GRpcClients: gRpcClients}
+		router.GET("/api/service/log", gin.WrapF(slh.GetServiceLog))
 	}
 
 	// 啟動伺服器

@@ -8,16 +8,11 @@
       "name": "SciTaipeiTool.db"
     },
     "grpcservers": [
-      {
+         {
           "factory":"PH1_PMS",
-          "server": "112.199.70.26:50095",
+          "server": "localhost:4695",
           "timeout": 10
-      },
-      {
-          "factory":"PH1_MES",
-          "server": "ph1bi.sportscity.com.ph:50095",
-          "timeout": 10
-      }
+        }
     ],
     "jwt_secret_key":"27128299"
   }
