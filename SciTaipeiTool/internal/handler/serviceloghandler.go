@@ -8,7 +8,6 @@ import (
 
 	"SciTaipeiTool/internal/ftygrpc"
 	pb "SciTaipeiTool/proto/taskexecutor"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type ServiceLogHandler struct {
@@ -16,6 +15,7 @@ type ServiceLogHandler struct {
 }
 
 func (h *ServiceLogHandler) GetServiceLog(w http.ResponseWriter, r *http.Request) {
+	factoryID := r.URL.Query().Get("factoryID")
 	serviceName := r.URL.Query().Get("serviceName")
 	rawDate := r.URL.Query().Get("logDate")
 
@@ -27,7 +27,7 @@ func (h *ServiceLogHandler) GetServiceLog(w http.ResponseWriter, r *http.Request
 
 	req := &pb.GetServiceLogRequest{
 		ServiceName: serviceName,
-		LogDate:     timestamppb.New(logDate),
+		Date:        logDate.String(),
 	}
 	resp, err := h.Client.GetServiceLog(context.Background(), req)
 	if err != nil {
