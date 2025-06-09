@@ -2,4 +2,4 @@ FactoryID: HZG_PMS
 ScriptRootPath: D:\ServiceApplication\ScriptPilot\ScriptRootPath
 TcpPort: 4695
 ServiceLogPaths:
-  FtyBiProducer: "C:\\Git\\SciMisTool\\FtyBiProducer\\logs\\FtyBiProducer-"
+  ftybiproducer: "C:\\Git\\SciMisTool\\FtyBiProducer\\logs\\FtyBiProducer-"

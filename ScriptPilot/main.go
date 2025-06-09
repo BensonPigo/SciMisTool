@@ -3,7 +3,9 @@ package main
 import (
 	pb "ScriptPilot/proto/taskexecutor" // 替換為實際的 Protobuf 生成包路徑
 	"ScriptPilot/util"
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -17,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -103,7 +106,7 @@ func (s *server) GetScripts(ctx context.Context, empty *pb.Empty) (*pb.GetScript
 
 // GetServiceLog fetches log content for a specific service and date
 func (s *server) GetServiceLog(ctx context.Context, req *pb.GetServiceLogRequest) (*pb.GetServiceLogResponse, error) {
-	dir, ok := config.ServiceLogPaths[req.ServiceName]
+	dir, ok := config.ServiceLogPaths[strings.ToLower(req.ServiceName)]
 	if !ok {
 		return nil, fmt.Errorf("service not found")
 	}
@@ -117,11 +120,36 @@ func (s *server) GetServiceLog(ctx context.Context, req *pb.GetServiceLogRequest
 	normalized := t.Format("2006-01-02")
 
 	filePath := dir + normalized + ".log"
-	data, err := os.ReadFile(filePath)
+	data, err := LogsToJSONArray(filePath)
 	if err != nil {
 		return nil, err
 	}
 	return &pb.GetServiceLogResponse{LogContent: string(data)}, nil
+}
+
+func LogsToJSONArray(filePath string) ([]byte, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	// 用 Decoder 一行一物件解析
+	dec := sonic.ConfigFastest.NewDecoder(bytes.NewReader(data))
+	var arr []interface{}
+	for {
+		// 跳過可能的空白
+		if !dec.More() {
+			break
+		}
+		var obj interface{}
+		if err := dec.Decode(&obj); err != nil {
+			return nil, err
+		}
+		arr = append(arr, obj)
+	}
+
+	// 最後一次性序列化成 JSON Array
+	return json.Marshal(arr)
 }
 
 // 根據 taskName 獲取腳本路徑
