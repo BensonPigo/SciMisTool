@@ -11,6 +11,7 @@ const ServiceLog = ({ setToken }) => {
   const [serviceName, setServiceName] = useState("");
   const [logDate, setLogDate] = useState("");
   const [logData, setLogData] = useState(null);
+  const [logSearchText, setlogSearchText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const factoryOptions = (process.env.REACT_APP_FACTORY_IDS || "")
@@ -97,7 +98,11 @@ const ServiceLog = ({ setToken }) => {
           </div>
         ) : (
           logData && (
-            <JsonGrid jsonData={logData} enableSearch enableSorting />
+            <JsonGrid 
+            data={logData}
+            enableSearch 
+            enableSorting 
+            />
           )
         )}
       </div>
