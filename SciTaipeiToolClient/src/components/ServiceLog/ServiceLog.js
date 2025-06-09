@@ -47,7 +47,12 @@ const ServiceLog = ({ setToken }) => {
         typeof rawData === "string" && rawData.trim() !== ""
           ? JSON.parse(rawData)
           : rawData;
-      setLogData(parsed);
+
+      const hasData = Array.isArray(parsed)
+        ? parsed.length > 0
+        : parsed && Object.keys(parsed).length > 0;
+
+      setLogData(hasData ? parsed : []);
     } catch (error) {
       alert(error.response?.data.message || "Server 發生錯誤。");
       setLogData(null);
@@ -59,7 +64,7 @@ const ServiceLog = ({ setToken }) => {
   return (
     <div className="font-sans p-5 bg-background min-h-screen">
       <Menu setToken={setToken} />
-      <div className="max-w-2xl mx-auto bg-white p-5 rounded-lg shadow">
+      <div className="max-w-4xl mx-auto bg-white p-5 rounded-lg shadow">
         <h2 className="text-xl font-bold mb-4">Service Log</h2>
         <div className="flex flex-wrap items-end gap-2 mb-4">
           <select
@@ -100,10 +105,14 @@ const ServiceLog = ({ setToken }) => {
           <div className="text-center mt-12">
             <div className="w-10 h-10 border-4 border-gray-200 border-t-info rounded-full animate-spin mx-auto" />
           </div>
+        ) : logData === null ? null : Array.isArray(logData) && logData.length === 0 ? (
+          <p className="mt-4 text-center">沒有資料</p>
+        ) : !Array.isArray(logData) && Object.keys(logData).length === 0 ? (
+          <p className="mt-4 text-center">沒有資料</p>
         ) : (
-          logData && (
+          <div className="mt-4 max-h-96 overflow-auto">
             <JsonGrid data={logData} enableSearch enableSorting />
-          )
+          </div>
         )}
       </div>
     </div>
