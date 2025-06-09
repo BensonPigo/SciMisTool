@@ -155,7 +155,7 @@ func main() {
 		protected.POST("/users/Logout", lh.Logout)
 
 		slh := &handler.ServiceLogHandler{GRpcClients: gRpcClients}
-		router.GET("/api/service/log", gin.WrapF(slh.GetServiceLog))
+		router.GET("/api/v1/service/log", gin.WrapF(slh.GetServiceLog))
 	}
 
 	// 啟動伺服器
