@@ -38,7 +38,7 @@ const Menu =  ({ setToken }) => {
 
   return (
     <nav className="flex justify-between items-center bg-gray-800 text-white px-4 py-2">
-      <h2 className="m-0">My App</h2>
+      <h2 className="m-0 font-semibold">SCI MIS Tool</h2>
       <div className="flex gap-2">
         <button
           className="bg-gray-600 text-white border-none px-3 py-2 rounded"
