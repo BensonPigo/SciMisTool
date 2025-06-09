@@ -64,3 +64,12 @@ func (c *Client) GetScripts(ctx context.Context) (*taskexecutor.GetScriptsRespon
 	}
 	return res, nil
 }
+
+// GetServiceLog 调用 TaskExecutor 的 GetServiceLog 方法
+func (c *Client) GetServiceLog(ctx context.Context, req *pb.GetServiceLogRequest) (*pb.GetServiceLogResponse, error) {
+	res, err := c.client.GetServiceLog(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
