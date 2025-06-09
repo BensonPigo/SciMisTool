@@ -37,50 +37,36 @@ const Menu =  ({ setToken }) => {
   };
 
   return (
-    <nav style={styles.nav}>
-      <h2 style={styles.logo}>My App</h2>
-      <div style={styles.menu}>
-      <button style={styles.menuButton} onClick={goHome}>
-        Home
-      </button>
-      <button style={styles.menuButton} onClick={goScript}>
-        Script
-      </button>
-      <button style={styles.menuButton} onClick={goServiceLog}>
-        Service Log
-      </button>
-      <button style={styles.menuButton} onClick={handleLogout}>
-        Logout
-      </button>
+    <nav className="flex justify-between items-center bg-gray-800 text-white px-4 py-2">
+      <h2 className="m-0">My App</h2>
+      <div className="flex gap-2">
+        <button
+          className="bg-gray-600 text-white border-none px-3 py-2 rounded"
+          onClick={goHome}
+        >
+          Home
+        </button>
+        <button
+          className="bg-gray-600 text-white border-none px-3 py-2 rounded"
+          onClick={goScript}
+        >
+          Script
+        </button>
+        <button
+          className="bg-gray-600 text-white border-none px-3 py-2 rounded"
+          onClick={goServiceLog}
+        >
+          Service Log
+        </button>
+        <button
+          className="bg-gray-600 text-white border-none px-3 py-2 rounded"
+          onClick={handleLogout}
+        >
+          Logout
+        </button>
       </div>
     </nav>
   );
-};
-
-const styles = {
-  nav: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#333",
-    color: "white",
-    padding: "10px 20px",
-  },
-  logo: {
-    margin: 0,
-  },
-  menu: {
-    display: "flex",
-    gap: "10px",
-  },
-  menuButton: {
-    backgroundColor: "#555",
-    color: "white",
-    border: "none",
-    padding: "10px 15px",
-    cursor: "pointer",
-    borderRadius: "5px",
-  },
 };
 
 export default Menu;
