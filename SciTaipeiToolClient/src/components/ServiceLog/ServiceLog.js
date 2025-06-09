@@ -1,17 +1,17 @@
 import React from "react";
 import Menu from "../../utils/Menu";
-import "./Home.css";
+import "./ServiceLog.css";
 
-const Home = ({ setToken }) => {
+const ServiceLog = ({ setToken }) => {
   return (
     <div className="home-container">
       <Menu setToken={setToken} />
       <div className="content">
-        <h2>Home</h2>
-        <p>Welcome to the home page.</p>
+        <h2>Service Log</h2>
+        <p>Coming soon.</p>
       </div>
     </div>
   );
 };
 
-export default Home;
+export default ServiceLog;

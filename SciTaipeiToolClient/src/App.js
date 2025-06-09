@@ -5,6 +5,8 @@ import Login from "./components/Login/Login";
 import Register from "./components/Register/Register";
 import ForgetPassword from "./components/ForgetPassword/ForgetPassword";
 import Home from "./components/Home/Home";
+import Script from "./components/Script/Script";
+import ServiceLog from "./components/ServiceLog/ServiceLog";
 import { getAccessToken } from "./utils/token";
 import ProtectedRoute from "./utils/ProtectedRoute";
 
@@ -30,6 +32,22 @@ const App = () => {
           element={
             <ProtectedRoute>
               <Home setToken={setToken} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/script"
+          element={
+            <ProtectedRoute>
+              <Script setToken={setToken} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/service-log"
+          element={
+            <ProtectedRoute>
+              <ServiceLog setToken={setToken} />
             </ProtectedRoute>
           }
         />
