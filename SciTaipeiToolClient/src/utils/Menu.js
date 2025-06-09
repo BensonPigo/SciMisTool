@@ -24,24 +24,34 @@ const Menu =  ({ setToken }) => {
     }
   };
 
-  const homeclick =()=>{
+  const goHome = () => {
+    navigate("/home");
+  };
 
-    navigate("/");
-  }
+  const goScript = () => {
+    navigate("/script");
+  };
+
+  const goServiceLog = () => {
+    navigate("/service-log");
+  };
 
   return (
     <nav style={styles.nav}>
       <h2 style={styles.logo}>My App</h2>
       <div style={styles.menu}>
-      <button style={styles.menuButton} onClick={() => homeclick()}>
-          Home
-        </button>
-        {/* <button style={styles.menuButton} onClick={() => navigate("/profile")}>
-          Task List
-        </button> */}
-        <button style={styles.menuButton} onClick={handleLogout}>
-          Logout
-        </button>
+      <button style={styles.menuButton} onClick={goHome}>
+        Home
+      </button>
+      <button style={styles.menuButton} onClick={goScript}>
+        Script
+      </button>
+      <button style={styles.menuButton} onClick={goServiceLog}>
+        Service Log
+      </button>
+      <button style={styles.menuButton} onClick={handleLogout}>
+        Logout
+      </button>
       </div>
     </nav>
   );
