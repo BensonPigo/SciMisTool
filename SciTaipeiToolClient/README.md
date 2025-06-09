@@ -1,70 +1,58 @@
-# Getting Started with Create React App
+# SCI MIS Tool 前端指南
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+本專案為 **SCI MIS Tool** 的前端界面，使用 [React](https://react.dev/) 與 [Tailwind CSS](https://tailwindcss.com/) 製作。透過此界面可登入系統、執行遠端腳本並查詢服務記錄。
 
-## Available Scripts
+## 專案架構
 
-In the project directory, you can run:
+- **React**：搭配 `react-router-dom` 管理路由。
+- **Tailwind CSS**：負責整體樣式與版型。
+- **axios**：`utils/apiClient.js` 內提供帶有攔截器的 API Client。
 
-### `yarn start`
+主要畫面組件位於 `src/components/`：
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- `Login`：使用者登入。
+- `Register`：註冊帳號。
+- `ForgetPassword`：重設密碼。
+- `Home`：登入後的首頁。
+- `Script`：列出可執行的腳本並下達執行指令。
+- `ServiceLog`：依條件查詢服務的 log。
+- `Menu`：畫面上方的導覽列及登出功能。
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 環境變數
 
-### `yarn test`
+程式碼中使用以下環境變數，可在建置或啟動前設定於 `.env`：
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- `REACT_APP_API_BASE_URL`：後端 API 的根網址，預設 `http://localhost:4795/api/v1`。
+- `REACT_APP_FACTORY_IDS`：`ServiceLog` 頁面下拉選單的工廠編號，使用逗號分隔。
+- `REACT_APP_SERVICE_NAMES`：`ServiceLog` 頁面服務名稱下拉選單，使用逗號分隔。
 
-### `yarn build`
+## 安裝與指令
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+確認已安裝 [Node.js](https://nodejs.org/) 與 [Yarn](https://yarnpkg.com/)，接著在 `SciTaipeiToolClient` 目錄下執行：
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```bash
+yarn install # 安裝依賴
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+開發模式：
 
-### `yarn eject`
+```bash
+yarn start
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+執行測試：
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```bash
+yarn test
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+建置生產版本：
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```bash
+yarn build
+```
 
-## Learn More
+## 部署
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+`yarn build` 會在 `build/` 產生靜態檔案，可部署至任何支援靜態檔案的伺服器，例如 Nginx、Apache 或 GitHub Pages。亦可將此資料夾內容置於後端服務的靜態檔案路徑下供使用者瀏覽。
 
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `yarn build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
