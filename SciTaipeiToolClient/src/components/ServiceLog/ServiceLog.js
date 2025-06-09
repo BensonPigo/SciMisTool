@@ -40,6 +40,7 @@ const ServiceLog = ({ setToken }) => {
       const response = await apiClient.get("/service/log", {
         params: { factoryId, serviceName, logDate },
       });
+
       // API 回傳的 log 內容為 JSON 字串，需先轉成物件才能給 JsonGrid
       const rawData = response.data;
       const parsed =
