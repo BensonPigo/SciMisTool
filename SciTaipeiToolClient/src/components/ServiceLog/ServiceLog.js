@@ -102,7 +102,9 @@ const ServiceLog = ({ setToken }) => {
           </div>
         ) : (
           logData && (
-            <JsonGrid data={logData} enableSearch enableSorting />
+            <div className="mt-4 max-h-96 overflow-auto">
+              <JsonGrid data={logData} enableSearch enableSorting />
+            </div>
           )
         )}
       </div>
