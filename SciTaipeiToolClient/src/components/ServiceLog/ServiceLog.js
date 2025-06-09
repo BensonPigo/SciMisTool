@@ -1,6 +1,7 @@
 import React from "react";
 import Menu from "../../utils/Menu";
 import "./ServiceLog.css";
+import JsonGrid from '@redheadphone/react-json-grid';
 
 const ServiceLog = ({ setToken }) => {
   return (
