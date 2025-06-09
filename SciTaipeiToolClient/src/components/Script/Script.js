@@ -4,7 +4,7 @@ import Menu from "../../utils/Menu";
 import apiClient from "../../utils/apiClient";
 import { useNavigate } from "react-router-dom";
 import DataTable from "react-data-table-component";
-import "./Script.css";
+// Styles migrated to Tailwind
 
 const Script = ({ setToken }) => {
   const navigate = useNavigate();
@@ -111,10 +111,10 @@ const Script = ({ setToken }) => {
   ];
 
   return (
-    <div className="home-container">
+    <div className="font-sans p-5 bg-background min-h-screen">
       <Menu setToken={setToken} />
-      <div className="content">
-        <div className="info-message">
+      <div className="max-w-2xl mx-auto bg-white p-5 rounded-lg shadow">
+        <div className="bg-yellow-100 text-yellow-800 p-4 border border-yellow-200 rounded mb-5 text-sm">
           <p>請根據工作排程名稱，選擇對應的腳本，然後點選 "Execute"。<br />
           注意：這將直接執行正式 Server 的工作排程，請務必確認後再執行。</p>
         </div>
@@ -123,16 +123,16 @@ const Script = ({ setToken }) => {
           placeholder="輸入關鍵字過濾資料..."
           value={filterText}
           onChange={(e) => setFilterText(e.target.value)}
-          className="filter-input"
+          className="w-full p-2 mb-5 border border-gray-300 rounded box-border focus:border-info focus:outline-none focus:ring-2 focus:ring-info/50"
         />
         {isLoading ? (
-          <div className="loading-container">
-            <div className="spinner"></div>
+          <div className="text-center mt-12">
+            <div className="w-10 h-10 border-4 border-gray-200 border-t-info rounded-full animate-spin mx-auto" />
             <p>Loading...</p>
           </div>
         ) : (
           <div className="table-container">
-            <h2>腳本清單</h2>
+            <h2 className="text-lg font-bold mb-2">腳本清單</h2>
             <DataTable
               columns={columns}
               data={filteredFiles}
@@ -140,7 +140,7 @@ const Script = ({ setToken }) => {
               highlightOnHover
               responsive
             />
-            <button className="execute-btn" onClick={handleExecute}>Execute</button>
+            <button className="w-full p-2 bg-primary text-white rounded text-lg cursor-pointer mt-4 hover:bg-primaryDark" onClick={handleExecute}>Execute</button>
           </div>
         )}
       </div>

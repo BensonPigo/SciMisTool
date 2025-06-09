@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link ,useNavigate} from "react-router-dom";
-import "./Login.css";
+// Styles migrated to Tailwind
 import { createApiClient } from "../../utils/apiClient";
 import { saveAccessToken } from "../../utils/token";
 import TodoList from "../../PigoTest/TodoList";
@@ -38,42 +38,44 @@ const Login =  ({ setToken }) => {
 };
 
   return (
-    <div className="login-container">
-      <div className="logo-section">
+    <div className="max-w-md mx-auto my-12 p-5 border border-gray-300 rounded-lg shadow bg-white text-center">
+      <div className="mb-5">
         {/* 替換這段為 Logo 圖片或保持文字標題 */}
-        <h1>SCI Taipei Tool</h1>
+        <h1 className="text-primary font-black text-2xl m-0">SCI Taipei Tool</h1>
       </div>
-      <h2>Login</h2>
+      <h2 className="mb-5 text-gray-800 font-bold">Login</h2>
       <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="email">Email:</label>
+        <div className="mb-4 text-left">
+          <label htmlFor="email" className="block mb-1 font-bold text-gray-800">Email:</label>
           <input
             type="email"
             id="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            className="w-full p-2 border border-gray-300 rounded box-border focus:border-primary focus:outline-none"
           />
         </div>
-        <div className="form-group">
-          <label htmlFor="password">Password:</label>
+        <div className="mb-4 text-left">
+          <label htmlFor="password" className="block mb-1 font-bold text-gray-800">Password:</label>
           <input
             type="password"
             id="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            className="w-full p-2 border border-gray-300 rounded box-border focus:border-primary focus:outline-none"
           />
         </div>
-        <button type="submit" className="login-button">
+        <button type="submit" className="w-full p-2 bg-primary text-white rounded text-lg cursor-pointer mt-2 hover:bg-primaryDark">
           Login
         </button>
       </form>
-      <div className="additional-actions">
-        <Link to="/register" className="action-button">
+      <div className="flex justify-between gap-2 mt-4">
+        <Link to="/register" className="flex-1 p-2 bg-gray-800 text-white rounded text-center text-sm hover:bg-gray-700">
           Register
         </Link>
-        <Link to="/forget-password" className="action-button">
+        <Link to="/forget-password" className="flex-1 p-2 bg-gray-800 text-white rounded text-center text-sm hover:bg-gray-700">
           Forgot Password
         </Link>
       </div>
