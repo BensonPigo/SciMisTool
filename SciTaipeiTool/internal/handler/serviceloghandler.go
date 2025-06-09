@@ -51,10 +51,6 @@ func (h *ServiceLogHandler) GetServiceLog(w http.ResponseWriter, r *http.Request
 		http.Error(w, "gRPC \u547c\u53eb\u5931\u6557: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if resp.GetLogContent() == "" {
-		http.Error(w, "\u627e\u4e0d\u5230\u5c0d\u61c9\u7684 log", http.StatusNotFound)
-		return
-	}
 
 	w.Header().Set("Content-Type", "application/json")
 

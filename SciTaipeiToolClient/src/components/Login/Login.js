@@ -40,7 +40,7 @@ const Login =  ({ setToken }) => {
     <div className="max-w-md mx-auto my-12 p-5 border border-gray-300 rounded-lg shadow bg-white text-center">
       <div className="mb-5">
         {/* 替換這段為 Logo 圖片或保持文字標題 */}
-        <h1 className="text-primary font-black text-2xl m-0">SCI Taipei Tool</h1>
+        <h1 className="text-primary font-black text-2xl m-0">SCI MIS  Tool</h1>
       </div>
       <h2 className="mb-5 text-gray-800 font-bold">Login</h2>
       <form onSubmit={handleSubmit}>

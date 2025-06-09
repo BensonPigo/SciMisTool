@@ -122,7 +122,8 @@ func (s *server) GetServiceLog(ctx context.Context, req *pb.GetServiceLogRequest
 	filePath := dir + normalized + ".log"
 	data, err := LogsToJSONArray(filePath)
 	if err != nil {
-		return nil, err
+		// return nil, err
+		return &pb.GetServiceLogResponse{LogContent: string("")}, nil
 	}
 	return &pb.GetServiceLogResponse{LogContent: string(data)}, nil
 }
