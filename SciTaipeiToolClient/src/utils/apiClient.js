@@ -47,7 +47,7 @@ export function createApiClient(useInterceptor = true) {
 
             // 清除 Access Token 並重定向到登入頁
             clearAccessToken();
-            window.location.href = "/login";
+            window.location.href = "/";
             return Promise.reject(refreshError);
           }
         }

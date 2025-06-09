@@ -3,7 +3,7 @@ import { Link ,useNavigate} from "react-router-dom";
 import "./Login.css";
 import { createApiClient } from "../../utils/apiClient";
 import { saveAccessToken } from "../../utils/token";
-import { TodoList } from "../../PigoTest/TodoList"
+import TodoList from "../../PigoTest/TodoList";
 
 const Login =  ({ setToken }) => {
   const [email, setEmail] = useState("");
@@ -25,7 +25,7 @@ const Login =  ({ setToken }) => {
           // 儲存 Access Token
           saveAccessToken(response.data.accessToken);
           setToken(response.data.accessToken); // 更新 App 中的 token
-          navigate("Home"); // Redirect to Login page
+          navigate("/home"); // Redirect to Home page
       }
       } catch (error) {
           if (error.response) {
