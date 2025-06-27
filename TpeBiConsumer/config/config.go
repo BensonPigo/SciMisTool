@@ -2,11 +2,13 @@
 package config
 
 import (
+	"encoding/base64"
 	"fmt"
 	"time"
 
 	"github.com/go-playground/validator"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 )
 
 type MQConfig struct {
@@ -42,6 +44,7 @@ type PrometheusConfig struct {
 type Config struct {
 	MQ                 MQConfig         `mapstructure:"mq"`
 	DB                 DBConfig         `mapstructure:"db"`
+	DBEnc              string           `mapstructure:"db_enc"`
 	Prometheus         PrometheusConfig `mapstructure:"prometheus"`
 	ConsumerCount      int              `mapstructure:"consumer_count"`
 	ProcessDdlInterval time.Duration    `mapstructure:"process_ddl_interval" validate:"required"`
@@ -93,6 +96,18 @@ func LoadConfig(path string) (*Config, error) {
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("解析設定失敗: %w", err)
+	}
+
+	if cfg.DBEnc != "" {
+		data, err := base64.StdEncoding.DecodeString(cfg.DBEnc)
+		if err != nil {
+			return nil, fmt.Errorf("無法解碼 db_enc: %w", err)
+		}
+		var dbCfg DBConfig
+		if err := yaml.Unmarshal(data, &dbCfg); err != nil {
+			return nil, fmt.Errorf("無法解析 db_enc: %w", err)
+		}
+		cfg.DB = dbCfg
 	}
 
 	// 3. 驗證必填欄位
