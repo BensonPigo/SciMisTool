@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	// "github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 )
 
@@ -34,19 +34,19 @@ func main() {
 	sugar.Info("Logger 初始化成功")
 
 	// 3. 載入設定檔
-       cfg, err := config.LoadConfig(config.ConfigFilePath)
+	cfg, err := config.LoadConfig(config.ConfigFilePath)
 	if err != nil {
 		sugar.Fatalf("載入設定失敗：%v", err)
 	}
 
 	// 4. 啟動 Metrics Server. 先啟動一個專門用來暴露 /metrics 的 HTTP 伺服器
-	go func() {
-		http.Handle("/metrics", promhttp.Handler())
-		sugar.Info(fmt.Sprintf("Metrics 伺服器啟動，監聽 :%d/metrics", cfg.Prometheus.MetricsPort))
-		if err := http.ListenAndServe(":"+strconv.Itoa(cfg.Prometheus.MetricsPort), nil); err != nil {
-			sugar.Fatalf("Metrics server 錯誤", zap.Error(err))
-		}
-	}()
+	// go func() {
+	//         http.Handle("/metrics", promhttp.Handler())
+	//         sugar.Info(fmt.Sprintf("Metrics 伺服器啟動，監聽 :%d/metrics", cfg.Prometheus.MetricsPort))
+	//         if err := http.ListenAndServe(":"+strconv.Itoa(cfg.Prometheus.MetricsPort), nil); err != nil {
+	//                 sugar.Fatalf("Metrics server 錯誤", zap.Error(err))
+	//         }
+	// }()
 
 	// 5. 建立可取消的 Context，訂閱 SIGINT 和 SIGTERM
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
