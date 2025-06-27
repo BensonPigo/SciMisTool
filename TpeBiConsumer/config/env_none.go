@@ -11,4 +11,4 @@ const ConfigFilePath = ""
 
 // The undefined identifier below will cause a compilation error when neither
 // 'dev' nor 'prod' build tags are supplied.
-var _ = ThisProjectRequiresADevOrProdBuildTag
+var _ = "ThisProjectRequiresADevOrProdBuildTag"
