@@ -18,7 +18,7 @@ import (
 
 	"FtyBiProducer/metrics"
 
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	// "github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 )
 
@@ -42,19 +42,19 @@ func main() {
 	defer stop()
 
 	// 4. 各種設定管理
-       cfg, err := config.LoadConfig(config.ConfigFilePath)
+	cfg, err := config.LoadConfig(config.ConfigFilePath)
 	if err != nil {
 		sugar.Fatalf("載入設定失敗：：", zap.Error(err))
 	}
 
 	// 5. 啟動 Metrics Server. 先啟動一個專門用來暴露 /metrics 的 HTTP 伺服器
-	go func() {
-		http.Handle("/metrics", promhttp.Handler())
-		sugar.Info("Metrics 伺服器啟動，監聽 :" + strconv.Itoa(cfg.Prometheus.MetricsPort) + "/metrics")
-		if err := http.ListenAndServe(":"+strconv.Itoa(cfg.Prometheus.MetricsPort), nil); err != nil {
-			sugar.Fatalf("Metrics server 錯誤", zap.Error(err))
-		}
-	}()
+	// go func() {
+	//         http.Handle("/metrics", promhttp.Handler())
+	//         sugar.Info("Metrics 伺服器啟動，監聽 :" + strconv.Itoa(cfg.Prometheus.MetricsPort) + "/metrics")
+	//         if err := http.ListenAndServe(":"+strconv.Itoa(cfg.Prometheus.MetricsPort), nil); err != nil {
+	//                 sugar.Fatalf("Metrics server 錯誤", zap.Error(err))
+	//         }
+	// }()
 
 	// 6. 建立 MQ Client
 	mqClient, err := mq.NewMQClient(cfg.MQ)
