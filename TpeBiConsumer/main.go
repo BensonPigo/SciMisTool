@@ -34,7 +34,7 @@ func main() {
 	sugar.Info("Logger 初始化成功")
 
 	// 3. 載入設定檔
-	cfg, err := config.LoadConfig("config/config.yaml")
+       cfg, err := config.LoadConfig(config.ConfigFilePath)
 	if err != nil {
 		sugar.Fatalf("載入設定失敗：%v", err)
 	}

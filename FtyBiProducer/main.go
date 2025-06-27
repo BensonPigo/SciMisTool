@@ -42,7 +42,7 @@ func main() {
 	defer stop()
 
 	// 4. 各種設定管理
-	cfg, err := config.LoadConfig("config/config.yaml")
+       cfg, err := config.LoadConfig(config.ConfigFilePath)
 	if err != nil {
 		sugar.Fatalf("載入設定失敗：：", zap.Error(err))
 	}
