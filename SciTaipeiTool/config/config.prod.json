@@ -1,93 +1,98 @@
 {
-  "host": "PMSAP",
-  "port": "4795",
-  "db": {
-    "host": "",
-    "user": "",
-    "password": "",
-    "name": "SciTaipeiTool.db"
-  },
-  "grpcservers": [
-{
-        "factory":"PH1_PMS",
-        "server": "112.199.70.26:50095",
-        "timeout": 10
-    },
-{
-        "factory":"PH1_MES",
-        "server": "ph1bi.sportscity.com.ph:50096",
-        "timeout": 10
-    },
-{
-        "factory":"PH2_PMS",
-        "server": "124.106.93.196:50095",
-        "timeout": 10
-    },
-{
-        "factory":"PH2_MES",
-        "server": "ph2bi.sportscity.com.ph:50096",
-        "timeout": 10
-    },
-{
-        "factory":"ESP_PMS",
-        "server": "203.113.147.13:50095",
-        "timeout": 10
-    },
-{
-        "factory":"SPT_PMS",
-        "server": "210.245.28.204:50095",
-        "timeout": 10
-    },
-{
-        "factory":"SNP_PMS",
-        "server": "14.238.80.202:50095",
-        "timeout": 10
-    },
-{
-        "factory":"SNP_MES",
-        "server": "snpbi.sportscity.com.vn:50096",
-        "timeout": 10
-    },
-{
-        "factory":"SPR_PMS",
-        "server": "116.206.18.100:50095",
-        "timeout": 10
-    },
-{
-        "factory":"SPR_MES",
-        "server": "sxrbi.sportscity.com.kh:50096",
-        "timeout": 10
-    },
-{
-        "factory":"SPS_PMS",
-        "server": "96.9.85.165:50095",
-        "timeout": 10
-    },
-{
-        "factory":"SPS_MES",
-        "server": "96.9.85.163:50096",
-        "timeout": 10
-    },
-{
-        "factory":"HZG_PMS",
-        "server": "112.11.122.182:50095",
-        "timeout": 10
-    },
-{
-        "factory":"HZG_MES",
-        "server": "HZGbi.sportscity.com.cn:50096",
-        "timeout": 10
-    },
-{
-        "factory":"SWR_PMS",
-        "server": "124.89.36.14:50095",
-        "timeout": 10
-    },
-{
-        "factory":"SWR_MES",
-        "server": "SWRbi.sportscity.com.cn:50096",
-        "timeout": 10
-    }
-  ],
-  "jwt_secret_key":"27128299"
+   "host":"PMSAP",
+   "port":"4795",
+   "db":{
+      "host":"",
+      "user":"",
+      "password":"",
+      "name":"SciTaipeiTool.db"
+   },
+   "grpcservers":[
+      {
+         "factory":"PH1_PMS",
+         "server":"112.199.70.26:50095",
+         "timeout":10
+      },
+      {
+         "factory":"PH1_MES",
+         "server":"ph1bi.sportscity.com.ph:50096",
+         "timeout":10
+      },
+      {
+         "factory":"PH2_PMS",
+         "server":"124.106.93.196:50095",
+         "timeout":10
+      },
+      {
+         "factory":"PH2_MES",
+         "server":"ph2bi.sportscity.com.ph:50096",
+         "timeout":10
+      },
+      {
+         "factory":"ESP_PMS",
+         "server":"203.113.147.13:50095",
+         "timeout":10
+      },
+      {
+         "factory":"SPT_PMS",
+         "server":"210.245.28.204:50095",
+         "timeout":10
+      },
+      {
+         "factory":"SNP_PMS",
+         "server":"14.238.80.202:50095",
+         "timeout":10
+      },
+      {
+         "factory":"SNP_MES",
+         "server":"snpbi.sportscity.com.vn:50096",
+         "timeout":10
+      },
+      {
+         "factory":"SPR_PMS",
+         "server":"116.206.18.100:50095",
+         "timeout":10
+      },
+      {
+         "factory":"SPR_MES",
+         "server":"sxrbi.sportscity.com.kh:50096",
+         "timeout":10
+      },
+      {
+         "factory":"SPS_PMS",
+         "server":"96.9.85.165:50095",
+         "timeout":10
+      },
+      {
+         "factory":"SPS_MES",
+         "server":"96.9.85.163:50096",
+         "timeout":10
+      },
+      {
+         "factory":"HZG_PMS",
+         "server":"112.11.122.182:50095",
+         "timeout":10
+      },
+      {
+         "factory":"HZG_MES",
+         "server":"HZGbi.sportscity.com.cn:50096",
+         "timeout":10
+      },
+      {
+         "factory":"SWR_PMS",
+         "server":"124.89.36.14:50095",
+         "timeout":10
+      },
+      {
+         "factory":"SWR_MES",
+         "server":"SWRbi.sportscity.com.cn:50096",
+         "timeout":10
+      },
+      {
+         "factory":"Factory_Testing",
+         "server":"TESTING",
+         "timeout":10
+      }
+   ],
+   "jwt_secret_key":"27128299"
 }

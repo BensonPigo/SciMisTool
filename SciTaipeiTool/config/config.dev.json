@@ -1,6 +1,6 @@
 {
-    "host": "localhost",
-    "port": "4795",
+   "host":"localhost",
+   "port":"4795",
     "db": {
       "host": "",
       "user": "",
@@ -9,8 +9,8 @@
     },
     "grpcservers": [
          {
-          "factory":"PH1_PMS",
-          "server": "localhost:4695",
+         "factory":"Factory_Testing",
+         "server":"TESTING:4695",
           "timeout": 10
         }
     ],
