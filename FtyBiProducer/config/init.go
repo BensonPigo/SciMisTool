@@ -23,11 +23,17 @@ func InitGormDB(dbCfg DBConfig) (*gorm.DB, error) {
 	pwd := url.QueryEscape(dbCfg.Password)
 
 	// 3. path 模式組 DSN，把 query timeout 加進去
+	//    若 instance 為空，就不要在 host 後面加上 '/'
+	pathHost := host
+	if strings.TrimSpace(instance) != "" {
+		pathHost = fmt.Sprintf("%s/%s", host, instance)
+	}
+
 	dsn := fmt.Sprintf(
-		"sqlserver://%s:%s@%s/%s"+
+		"sqlserver://%s:%s@%s"+
 			"?database=%s&encrypt=%s&connection+timeout=%d&query+timeout=%d",
 		dbCfg.User, pwd,
-		host, instance,
+		pathHost,
 		dbCfg.Name, dbCfg.Encrypt,
 		int(dbCfg.Timeout.Seconds()),
 		int(dbCfg.QueryTimeout.Seconds()),

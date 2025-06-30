@@ -6,8 +6,8 @@ prometheus:
   metrics_port: 2112 # metrics 暴露 port
 
 mq:
-  # RabbitMQ 連線 URL（含使用 TLS 時的 amqps）
-  amqp_url:     "amqps://root:admin1234@localhost:5671/"
+  # RabbitMQ 連線 URL，帳號密碼 SCIMIS:27128299，注意區分大小寫
+  amqp_url:     "amqp://SCIMIS:27128299@PMSAP:5672/"
   # TLS 憑證檔案路徑
   cert_file:    "certs/PmsApClient.crt"
   key_file:     "certs/PmsApClient.key"

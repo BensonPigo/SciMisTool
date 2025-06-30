@@ -7,17 +7,19 @@ import (
 	"SciTaipeiTool/internal/ftygrpc"
 	"SciTaipeiTool/internal/handler"
 	"SciTaipeiTool/middleware"
+	"SciTaipeiTool/scilog"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
 	"SciTaipeiTool/internal/dataprovider/db"
 	"SciTaipeiTool/internal/dataprovider/models"
-
-	"flag"
 
 	"github.com/gin-gonic/gin"
 )
@@ -40,8 +42,20 @@ type Config struct {
 }
 
 // 載入Config配置
-func loadConfig(env string) (*Config, error) {
-	file, err := os.Open("config/config." + env + ".json")
+func loadConfig() (*Config, error) {
+	// 自動尋找 config 目錄下第一個 config.*.json
+	matches, err := filepath.Glob("config/config.*.json")
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(matches) == 0 {
+		return nil, errors.New("在 config/ 目錄下找不到任何 config.*.json 檔案")
+
+	}
+	cfgPath := matches[0]
+	file, err := os.Open(cfgPath)
 	if err != nil {
 		return nil, err
 	}
@@ -74,15 +88,25 @@ func waitForShutdown() {
 }
 
 func main() {
-	// 組態設定載入
-	// 變數名稱env ，啟動程式時沒有指定 -env，則程式中的 env 變數將會是 "dev"
-	env := flag.String("env", "dev", "選擇環境 (dev, prod)") // flag.String：這個函數返回的是一個指標
-	flag.Parse()
 
-	config, err := loadConfig(*env)
+	// 建立 Logger
+	logger, err := scilog.NewFileLogger()
+	if err != nil {
+		// 如果 Logger 建立失敗，立即中止程式並印出錯誤
+		panic(fmt.Sprintf("無法建立日誌：%v", err))
+	}
+	// 確保程式結束前會把緩衝區 flush
+	defer logger.Sync()
+
+	// 建立 Sugared Logger，方便後續呼叫
+	sugar := logger.Sugar()
+	sugar.Info("Logger 初始化成功")
+
+	// 組態設定載入
+	config, err := loadConfig()
 
 	if err != nil {
-		log.Fatalf("無法載入組態: %v", err)
+		sugar.Fatalf("無法載入組態: %v", err)
 	}
 
 	/*----------初始化----------*/
@@ -100,7 +124,7 @@ func main() {
 
 		gRpcClient, err := ftygrpc.NewClient(grpc.Server, time.Duration(grpc.Timeout)*time.Second)
 		if err != nil {
-			log.Fatalf("Failed to initialize gRPC client: %v", err)
+			sugar.Fatalf("Failed to initialize gRPC client: %v", err)
 		}
 		gRpcClient.FactoryId = grpc.Factory
 		gRpcClients = append(gRpcClients, gRpcClient)
@@ -113,7 +137,8 @@ func main() {
 		}
 	}()
 	if len(gRpcClients) == 0 {
-		log.Fatalf("無法載入任何gRPC Client")
+		sugar.Fatalf("無法載入任何gRPC Client")
+
 		return
 	}
 	// 密鑰
@@ -162,7 +187,7 @@ func main() {
 	go func() {
 		// 監聽 :8080
 		if err := router.Run(config.Host + ":" + config.Port); err != nil {
-			log.Fatalf("伺服器啟動失敗: %v", err)
+			sugar.Fatalf("伺服器啟動失敗: %v", err)
 		}
 	}()
 

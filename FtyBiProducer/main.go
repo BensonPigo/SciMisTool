@@ -8,9 +8,9 @@ import (
 	"FtyBiProducer/service"
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"sync"
 	"syscall"
@@ -18,7 +18,6 @@ import (
 
 	"FtyBiProducer/metrics"
 
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 )
 
@@ -41,20 +40,30 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	// 4. 各種設定管理
-	cfg, err := config.LoadConfig("config/config.yaml")
+	// 4. 設定管理：自動尋找 config 目錄下第一個 config.*.yaml
+	matches, err := filepath.Glob("config/config.*.yaml")
 	if err != nil {
-		sugar.Fatalf("載入設定失敗：：", zap.Error(err))
+		sugar.Fatalf("尋找設定檔時發生錯誤：%v", err)
+	}
+	if len(matches) == 0 {
+		sugar.Fatalf("在 config/ 目錄下找不到任何 config.*.yaml 檔案")
+	}
+	cfgPath := matches[0]
+	sugar.Infof("載入設定檔：%s", cfgPath)
+
+	cfg, err := config.LoadConfig(cfgPath)
+	if err != nil {
+		sugar.Fatalf("載入設定失敗：%v", err)
 	}
 
-	// 5. 啟動 Metrics Server. 先啟動一個專門用來暴露 /metrics 的 HTTP 伺服器
-	go func() {
-		http.Handle("/metrics", promhttp.Handler())
-		sugar.Info("Metrics 伺服器啟動，監聽 :" + strconv.Itoa(cfg.Prometheus.MetricsPort) + "/metrics")
-		if err := http.ListenAndServe(":"+strconv.Itoa(cfg.Prometheus.MetricsPort), nil); err != nil {
-			sugar.Fatalf("Metrics server 錯誤", zap.Error(err))
-		}
-	}()
+	// // 5. 啟動 Metrics Server. 先啟動一個專門用來暴露 /metrics 的 HTTP 伺服器
+	// go func() {
+	// 	http.Handle("/metrics", promhttp.Handler())
+	// 	sugar.Info("Metrics 伺服器啟動，監聽 :" + strconv.Itoa(cfg.Prometheus.MetricsPort) + "/metrics")
+	// 	if err := http.ListenAndServe(":"+strconv.Itoa(cfg.Prometheus.MetricsPort), nil); err != nil {
+	// 		sugar.Fatalf("Metrics server 錯誤", zap.Error(err))
+	// 	}
+	// }()
 
 	// 6. 建立 MQ Client
 	mqClient, err := mq.NewMQClient(cfg.MQ)

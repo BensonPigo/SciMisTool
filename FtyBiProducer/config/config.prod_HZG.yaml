@@ -1,10 +1,9 @@
 process_ddl_interval: "15s"    # 每 5 分鐘執行一次DDL批次處理
-process_dml_interval: "1h"    # 每 1 小時小時執行一次DML批次處理
-process_timeout: "1m"    # 單次批次處理timeout 為30秒
-consumer_count: 10 # consumer數量
+process_dml_interval: "1s"    # 每 1 小時小時執行一次DML批次處理
+process_timeout: "30s"    # 單次批次處理timeout 為30秒
 
 prometheus:
-  metrics_port: 2113 # metrics 暴露 port
+  metrics_port: 2112 # metrics 暴露 port
 
 mq:
   # RabbitMQ 連線 URL，帳號密碼 SCIMIS:27128299，注意區分大小寫
@@ -14,24 +13,26 @@ mq:
   key_file:     "certs/PmsApClient.key"
   ca_cert_file: "certs/ca.crt"
   # 連線逾時 (字串)，程式裡用 time.ParseDuration 解析
-  timeout:      "5s"
-  dead_letter_exchange: "ddldml_dlx_exchange_test"
-  dead_letter_queue: "ddl_dml_dead_queue_test"
-  dead_letter_routing_key: "dead_ddldml_test"
-  primary_exchange: "bi_direct_test"
-  primaryqueue: "ddl_dml_main_queue_test"
+  timeout:      "30s"
+  confirm_timeout: "10s"
+  dead_letter_exchange: "ddldml_dlx_exchange"
+  dead_letter_queue: "ddl_dml_dead_queue"
+  dead_letter_routing_key: "dead_ddldml"
+  primary_exchange: "bi_direct"
+  primaryqueue: "ddl_dml_main_queue"
 
 db:
-  host:      "PMSDB"
-  instance:  "POWERBI"
+  host:      "newerp-bak.hzg.com.cn"
+  # instance:  "PH1"
   # SQL Server 連接埠 (如有需要)
   # port:         1433
   # 登入帳號、密碼
   user:         "SCIMIS"
   password:     "27128299"
   # Initial Catalog
-  name:         "PBIReportData_Test"
+  name:         "POWERBIReportData"
   # 加密方式 (disable 或 require)
   encrypt:      "disable"
   # 連線逾時 (字串)，程式裡用 time.ParseDuration 解析
-  timeout:      "5s"
+  timeout:      "60s"
+  query_timeout: "30s"
