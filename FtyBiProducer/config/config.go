@@ -21,7 +21,7 @@ type MQConfig struct {
 	DeadLetterQueue      string        `mapstructure:"dead_letter_queue" yaml:"dead_letter_queue"`
 	DeadLetterRoutingKey string        `mapstructure:"dead_letter_routing_key" yaml:"dead_letter_routing_key"`
 	PrimaryExchange      string        `mapstructure:"primary_exchange" yaml:"primary_exchange"`
-	PrimaryQueue         string        `mapstructure:"primaryqueue" yaml:"primaryqueue"`
+	PrimaryQueue         string        `mapstructure:"primary_queue" yaml:"primary_queue"`
 }
 
 type DBConfig struct {
@@ -69,7 +69,7 @@ func LoadConfig(path string) (*Config, error) {
 	v.BindEnv("mq.dead_letter_queue")
 	v.BindEnv("mq.dead_letter_routing_key")
 	v.BindEnv("mq.primary_exchange")
-	v.BindEnv("mq.primaryqueue")
+	v.BindEnv("mq.primary_queue")
 	v.BindEnv("mq.confirm_timeout")
 
 	v.BindEnv("db.host")

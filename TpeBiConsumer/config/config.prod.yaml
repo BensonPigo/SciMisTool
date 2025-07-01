@@ -7,23 +7,23 @@ prometheus:
   metrics_port: 2113 # metrics 暴露 port
 
 mq:
-  # RabbitMQ 連線 URL，帳號密碼 SCIMIS:27128299，注意區分大小寫
-  amqp_url:     "amqp2://scimis:27128299@PMSAP:5672/"
+  # RabbitMQ 連線 URL，帳號密碼 scimis:27128299，注意區分大小寫
+  amqp_url:     "amqp://SCIMIS:27128299@PMSAP:5672/"
   # TLS 憑證檔案路徑
   cert_file:    "certs/PmsApClient.crt"
   key_file:     "certs/PmsApClient.key"
   ca_cert_file: "certs/ca.crt"
   # 連線逾時 (字串)，程式裡用 time.ParseDuration 解析
   timeout:      "5s"
-  dead_letter_exchange: "ddldml_dlx_exchange"
+  dead_letter_exchange: "bi_dlx_exchange"
   dead_letter_queue: "ddl_dml_dead_queue"
   dead_letter_routing_key: "dead_ddldml"
-  primary_exchange: "bi_direct"
-  primaryqueue: "ddl_dml_main_queue"
+  primary_exchange: "bi_main_exchange"
+  primary_queue: "ddl_dml_main_queue"
 
 db:
-  host:      "testing"
-  instance:  "PMS"
+  host:      "PMSDB"
+  instance:  "POWERBI"
   # SQL Server 連接埠 (如有需要)
   # port:         1433
   # 登入帳號、密碼

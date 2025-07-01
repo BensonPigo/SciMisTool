@@ -364,3 +364,7 @@ FodyWeavers.xsd
 /發布
 /SciTaipeiTool/SciTaipeiTool.db
 /SciTaipeiTool/SciTaipeiTool.exe
+
+/FtyBiProducer/*.exe
+
+/TpeBiConsumer/*.exe

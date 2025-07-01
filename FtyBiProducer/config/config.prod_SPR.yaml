@@ -15,11 +15,11 @@ mq:
   # 連線逾時 (字串)，程式裡用 time.ParseDuration 解析
   timeout:      "30s"
   confirm_timeout: "10s"
-  dead_letter_exchange: "ddldml_dlx_exchange"
+  dead_letter_exchange: "bi_dlx_exchange"
   dead_letter_queue: "ddl_dml_dead_queue"
   dead_letter_routing_key: "dead_ddldml"
-  primary_exchange: "bi_direct"
-  primaryqueue: "ddl_dml_main_queue"
+  primary_exchange: "bi_main_exchange"
+  primary_queue: "ddl_dml_main_queue"
 
 db:
   host:      "SQLBK"
