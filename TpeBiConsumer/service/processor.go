@@ -4,6 +4,8 @@ package service
 import (
 	model "TpeBiConsumer/model"
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -11,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/bytedance/sonic"
@@ -24,14 +27,21 @@ type Processor struct {
 	db *gorm.DB
 	// 緩存： key = tableName, value = []gorm.ColumnType
 	colTypeCache map[string][]gorm.ColumnType
+	// 已執行過的 DDL 指令，用於避免重複執行
+	executedDDL map[string]struct{}
+	ddlMu       sync.RWMutex
 }
 
 // 建立只需要 db 的 Processor
 func NewProcessor(db *gorm.DB) *Processor {
-	return &Processor{
+	p := &Processor{
 		db:           db,
 		colTypeCache: make(map[string][]gorm.ColumnType),
+		executedDDL:  make(map[string]struct{}),
 	}
+	// 確保 ExecutedDDL 資料表存在
+	_ = db.AutoMigrate(&model.ExecutedDDL{})
+	return p
 }
 
 func (p *Processor) getColumnTypesOnce(ctx context.Context, tableName string) ([]gorm.ColumnType, error) {
@@ -527,12 +537,53 @@ func (p *Processor) DdlLogProcess(ctx context.Context, body []byte) error {
 		if sqlText == "" {
 			return fmt.Errorf(" XML 未包含 CommandText")
 		}
-		// 3. 在指定資料庫執行 DDL
+		normalized := strings.ToUpper(strings.Join(strings.Fields(sqlText), " "))
+		hash := sha1.Sum([]byte(normalized))
+		hashHex := hex.EncodeToString(hash[:])
+
+		// 3. 檢查是否已執行過相同 DDL（DB + 記憶體）
+		p.ddlMu.RLock()
+		_, done := p.executedDDL[hashHex]
+		p.ddlMu.RUnlock()
+
+		if !done {
+			var cnt int64
+			if err := p.db.WithContext(ctx).
+				Model(&model.ExecutedDDL{}).
+				Where("SQLHash = ?", hashHex).
+				Count(&cnt).Error; err != nil {
+				return fmt.Errorf("查詢 DDL 執行紀錄失敗: %w", err)
+			}
+			if cnt > 0 {
+				p.ddlMu.Lock()
+				p.executedDDL[hashHex] = struct{}{}
+				p.ddlMu.Unlock()
+				done = true
+			}
+		}
+
+		if done {
+			continue
+		}
+
+		// 4. 在指定資料庫執行 DDL
 		res := p.db.WithContext(ctx).Exec(sqlText)
 		if err := res.Error; err != nil {
 			// 把原始錯誤與 SQL 都印出來
 			return fmt.Errorf("執行 DDL 失敗: %v; SQL: %s", err, sqlText)
 		}
+
+		// 5. 記錄此 DDL 已成功執行（寫入 DB + 快取）
+		rec := model.ExecutedDDL{
+			SQLHash: hashHex,
+			SQLText: normalized,
+		}
+		if err := p.db.WithContext(ctx).Create(&rec).Error; err != nil {
+			return fmt.Errorf("記錄 DDL 執行失敗: %w", err)
+		}
+		p.ddlMu.Lock()
+		p.executedDDL[hashHex] = struct{}{}
+		p.ddlMu.Unlock()
 	}
 
 	return nil

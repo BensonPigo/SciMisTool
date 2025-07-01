@@ -6,6 +6,7 @@
 
 - 透過 TLS 連線至 RabbitMQ，依設定的 `consumer_count` 啟動多個 consumer
 - 解析收到的訊息後執行 DDL 或 DML 變更
+- 透過 `ExecutedDDL` 資料表追蹤已執行的 DDL，避免相同指令再次執行
 - 對執行過的記錄標記狀態避免重複處理
 - 暴露批次次數、錯誤次數、處理耗時等 Prometheus 指標
 
