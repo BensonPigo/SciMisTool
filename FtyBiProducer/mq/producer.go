@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -19,6 +20,55 @@ type MQClient struct {
 	ch       *amqp.Channel
 	queue    *amqp.Queue
 	confirms <-chan amqp.Confirmation
+	mu       sync.Mutex
+}
+
+// ensureChannel creates or reuses the producer's channel safely
+func (c *MQClient) ensureChannel() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.ch != nil && !c.ch.IsClosed() {
+		return nil
+	}
+
+	ch, err := c.conn.Channel()
+	if err != nil {
+		return err
+	}
+	if err := ch.Confirm(false); err != nil {
+		ch.Close()
+		return err
+	}
+	c.ch = ch
+	c.confirms = ch.NotifyPublish(make(chan amqp.Confirmation, 1))
+	return nil
+}
+
+// Reconnect re-establishes the connection and channel if needed
+func (c *MQClient) Reconnect() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.conn != nil && !c.conn.IsClosed() {
+		// already connected by another goroutine
+		return nil
+	}
+
+	newClient, err := NewMQClient(c.cfg)
+	if err != nil {
+		return err
+	}
+
+	if c.conn != nil {
+		c.ch.Close()
+		c.conn.Close()
+	}
+	c.conn = newClient.conn
+	c.ch = newClient.ch
+	c.queue = newClient.queue
+	c.confirms = newClient.confirms
+	return nil
 }
 
 // 建立 RabbitMQ TLS、連線、Channel、宣告 Exchange...
@@ -161,6 +211,15 @@ func NewMQClient(cfg config.MQConfig) (*MQClient, error) {
 
 // 發送訊息
 func (c *MQClient) Publish(ctx context.Context, routingKey RoutingKey, body []byte) error {
+
+	if err := c.ensureChannel(); err != nil {
+		if err := c.Reconnect(); err != nil {
+			return err
+		}
+		if err := c.ensureChannel(); err != nil {
+			return err
+		}
+	}
 
 	// 發送
 	if err := c.ch.PublishWithContext(
