@@ -296,7 +296,6 @@ func (c *Consumer) Start(ctx context.Context, handler HandlerFunc) error {
 
 				case d, ok := <-msgs:
 					if !ok {
-						c.logger.Warn("Delivery channel closed, reconnecting")
 						if err := c.reconnect(ctx); err != nil {
 							c.logger.Errorw("Reconnect failed", "err", err)
 							return
