@@ -30,6 +30,29 @@ type Consumer struct {
 	queueName string
 	logger    *zap.SugaredLogger
 	wg        sync.WaitGroup
+	mu        sync.Mutex
+}
+
+// ensureChannel creates or reuses the consumer's channel safely
+func (c *Consumer) ensureChannel() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.ch != nil && !c.ch.IsClosed() {
+		return nil
+	}
+
+	ch, err := c.client.conn.Channel()
+	if err != nil {
+		return err
+	}
+	if err := ch.Qos(1, 0, false); err != nil {
+		ch.Close()
+		return err
+	}
+	c.ch = ch
+	c.queueName = c.client.queue.Name
+	return nil
 }
 
 // HandlerFunc 處理訊息的 callback
@@ -209,20 +232,14 @@ func (c *MQClient) Reconnect() error {
 
 // NewConsumer 建立一個 consumer
 func NewConsumer(mqClient *MQClient, logger *zap.SugaredLogger) *Consumer {
-	ch, err := mqClient.conn.Channel() // ← 每個 consumer 自己的 channel
-	if err != nil {
+	c := &Consumer{
+		client: mqClient,
+		logger: logger,
+	}
+	if err := c.ensureChannel(); err != nil {
 		return nil
 	}
-	if err := ch.Qos(1, 0, false); err != nil {
-		return nil
-	}
-
-	return &Consumer{
-		client:    mqClient,
-		ch:        ch,
-		queueName: mqClient.queue.Name,
-		logger:    logger,
-	}
+	return c
 }
 
 // reconnect 重新連線並建立新的 channel
@@ -230,18 +247,10 @@ func (c *Consumer) reconnect(ctx context.Context) error {
 	for {
 		if err := c.client.Reconnect(); err != nil {
 			c.logger.Errorw("MQ reconnect failed", "err", err)
+		} else if err := c.ensureChannel(); err == nil {
+			return nil
 		} else {
-			ch, err := c.client.conn.Channel()
-			if err != nil {
-				c.logger.Errorw("Channel open failed", "err", err)
-			} else if err = ch.Qos(1, 0, false); err != nil {
-				c.logger.Errorw("Set QoS failed", "err", err)
-				ch.Close()
-			} else {
-				c.ch = ch
-				c.queueName = c.client.queue.Name
-				return nil
-			}
+			c.logger.Errorw("Channel open failed", "err", err)
 		}
 
 		select {
@@ -254,6 +263,9 @@ func (c *Consumer) reconnect(ctx context.Context) error {
 
 // Start 啟動消費，並在收到 ctx.Done() 時優雅結束
 func (c *Consumer) Start(ctx context.Context, handler HandlerFunc) error {
+	if err := c.ensureChannel(); err != nil {
+		return err
+	}
 	c.wg.Add(1)
 	go func() {
 		defer c.wg.Done()
