@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
@@ -23,6 +24,7 @@ type MQClient struct {
 
 // Consumer 依 RoutingKey 分流，並支援優雅關閉
 type Consumer struct {
+	client    *MQClient
 	ch        *amqp.Channel
 	queueName string
 	logger    *zap.SugaredLogger
@@ -179,6 +181,20 @@ func (c *MQClient) Close() {
 	c.conn.Close()
 }
 
+// Reconnect 重新建立與 RabbitMQ 的連線與相關資源
+func (c *MQClient) Reconnect() error {
+	newClient, err := NewMQClient(c.cfg)
+	if err != nil {
+		return err
+	}
+	c.Close()
+	c.conn = newClient.conn
+	c.ch = newClient.ch
+	c.queue = newClient.queue
+	c.confirms = newClient.confirms
+	return nil
+}
+
 // NewConsumer 建立一個 consumer
 func NewConsumer(mqClient *MQClient, logger *zap.SugaredLogger) *Consumer {
 	ch, err := mqClient.conn.Channel() // ← 每個 consumer 自己的 channel
@@ -190,57 +206,88 @@ func NewConsumer(mqClient *MQClient, logger *zap.SugaredLogger) *Consumer {
 	}
 
 	return &Consumer{
+		client:    mqClient,
 		ch:        ch,
 		queueName: mqClient.queue.Name,
 		logger:    logger,
 	}
 }
 
+// reconnect 重新連線並建立新的 channel
+func (c *Consumer) reconnect(ctx context.Context) error {
+	for {
+		if err := c.client.Reconnect(); err != nil {
+			c.logger.Errorw("MQ reconnect failed", "err", err)
+		} else {
+			ch, err := c.client.conn.Channel()
+			if err != nil {
+				c.logger.Errorw("Channel open failed", "err", err)
+			} else if err = ch.Qos(1, 0, false); err != nil {
+				c.logger.Errorw("Set QoS failed", "err", err)
+				ch.Close()
+			} else {
+				c.ch = ch
+				c.queueName = c.client.queue.Name
+				return nil
+			}
+		}
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(5 * time.Second):
+		}
+	}
+}
+
 // Start 啟動消費，並在收到 ctx.Done() 時優雅結束
 func (c *Consumer) Start(ctx context.Context, handler HandlerFunc) error {
-	msgs, err := c.ch.Consume(
-		c.queueName,
-		"",    // consumerTag：空字串讓 RabbitMQ 自動產生唯一 tag
-		false, // autoAck = false，由我們手動 Ack / Nack
-		false, // exclusive = false，允許多個 consumer 共同消費同一個 queue
-		false, // noLocal
-		false, // noWait
-		nil,   // args
-	)
-	if err != nil {
-		return err
-	}
-
 	c.wg.Add(1)
 	go func() {
 		defer c.wg.Done()
 		for {
-			select {
-			case <-ctx.Done():
-				c.logger.Info("Consumer received shutdown signal")
-				return
-
-			case d, ok := <-msgs:
-				if !ok {
-					c.logger.Warn("Delivery channel closed")
+			msgs, err := c.ch.Consume(
+				c.queueName,
+				"",
+				false,
+				false,
+				false,
+				false,
+				nil,
+			)
+			if err != nil {
+				c.logger.Errorw("Consume failed", "err", err)
+				if err := c.reconnect(ctx); err != nil {
+					c.logger.Errorw("Reconnect failed", "err", err)
 					return
 				}
-				// 呼叫外部 Handler
-				if err := handler(ctx, d.RoutingKey, d.Body); err != nil {
+				continue
+			}
 
-					// 處理失敗時，Nack 並設定 requeue = false
-					// 使此筆訊息被送到我們在 QueueDeclare 時指定的 Dead Letter Exchange
-					c.logger.Errorw("Handler error, message will be sent to Dead letter queue",
-						"routingKey", d.RoutingKey,
-						"err", err,
-					)
-					d.Nack(false, false) // requeue = false → 走死信機制
-					/*c.logger.Errorw("Message處理失敗", "routingKey", d.RoutingKey, "err", err)
-					// 處理失敗，只針對這筆消息回應 Nack，該消息則重新回到 queue
-					d.Nack(false, true)*/
-				} else {
-					// 處理成功，只針對這筆消息回應 ack
-					d.Ack(false)
+			for {
+				select {
+				case <-ctx.Done():
+					c.logger.Info("Consumer received shutdown signal")
+					return
+
+				case d, ok := <-msgs:
+					if !ok {
+						c.logger.Warn("Delivery channel closed, reconnecting")
+						if err := c.reconnect(ctx); err != nil {
+							c.logger.Errorw("Reconnect failed", "err", err)
+							return
+						}
+						break
+					}
+					if err := handler(ctx, d.RoutingKey, d.Body); err != nil {
+						c.logger.Errorw("Handler error, message will be sent to Dead letter queue",
+							"routingKey", d.RoutingKey,
+							"err", err,
+						)
+						d.Nack(false, false)
+					} else {
+						d.Ack(false)
+					}
 				}
 			}
 		}
