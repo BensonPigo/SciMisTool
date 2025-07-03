@@ -13,6 +13,11 @@ import (
 	"go.uber.org/zap"
 )
 
+var (
+	globalMQClient *MQClient
+	mqClientMu     sync.Mutex
+)
+
 type MQClient struct {
 	cfg      config.MQConfig
 	conn     *amqp.Connection
@@ -36,6 +41,12 @@ type HandlerFunc func(ctx context.Context, routingKey string, body []byte) error
 
 // 建立 RabbitMQ TLS、連線、Channel、宣告 Exchange...
 func NewMQClient(cfg config.MQConfig) (*MQClient, error) {
+	mqClientMu.Lock()
+	defer mqClientMu.Unlock()
+
+	if globalMQClient != nil && !globalMQClient.conn.IsClosed() {
+		return globalMQClient, nil
+	}
 
 	// 載入客戶端憑證與私鑰
 	clientCert, err := tls.LoadX509KeyPair(cfg.CertFile, cfg.KeyFile)
@@ -171,12 +182,23 @@ func NewMQClient(cfg config.MQConfig) (*MQClient, error) {
 		}
 	}
 
-	return &MQClient{conn: conn, ch: ch, cfg: cfg, queue: &q, confirms: confirms}, nil
+	globalMQClient = &MQClient{conn: conn, ch: ch, cfg: cfg, queue: &q, confirms: confirms}
+	return globalMQClient, nil
 }
 
 func (c *MQClient) Close() {
-	c.ch.Close()
-	c.conn.Close()
+	mqClientMu.Lock()
+	defer mqClientMu.Unlock()
+
+	if c.ch != nil {
+		c.ch.Close()
+	}
+	if c.conn != nil {
+		c.conn.Close()
+	}
+	if globalMQClient == c {
+		globalMQClient = nil
+	}
 }
 
 // NewConsumer 建立一個 consumer
