@@ -229,10 +229,17 @@ func (p *Processor) batchUpsertWithMerge(ctx context.Context, tableName string, 
 	sort.Slice(columnTypes, func(i, j int) bool {
 		return columnTypes[i].Name() < columnTypes[j].Name()
 	})
-	cols := make([]string, len(columnTypes))
+
+	// 排除無法 INSERT 的自動遞增欄位（例如 IDENTITY）
+	cols := make([]string, 0, len(columnTypes))
 	colTypeMap := make(map[string]gorm.ColumnType, len(columnTypes))
-	for i, ct := range columnTypes {
-		cols[i] = ct.Name()
+	skipCols := make(map[string]struct{})
+	for _, ct := range columnTypes {
+		if isAI, ok := ct.AutoIncrement(); ok && isAI {
+			skipCols[ct.Name()] = struct{}{}
+			continue
+		}
+		cols = append(cols, ct.Name())
 		colTypeMap[ct.Name()] = ct
 	}
 
@@ -275,6 +282,9 @@ func (p *Processor) batchUpsertWithMerge(ctx context.Context, tableName string, 
 	// 9. 組合 MERGE 語法並執行
 	var allCols, keyCols []string
 	for _, ct := range columnTypes {
+		if _, skip := skipCols[ct.Name()]; skip {
+			continue
+		}
 		allCols = append(allCols, ct.Name())
 		if isPK, _ := ct.PrimaryKey(); isPK {
 			keyCols = append(keyCols, ct.Name())
