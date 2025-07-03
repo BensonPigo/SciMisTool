@@ -20,6 +20,7 @@ type MQClient struct {
 	ch       *amqp.Channel
 	queue    *amqp.Queue
 	confirms <-chan amqp.Confirmation
+	mu       sync.Mutex
 }
 
 // Consumer 依 RoutingKey 分流，並支援優雅關閉
@@ -183,11 +184,22 @@ func (c *MQClient) Close() {
 
 // Reconnect 重新建立與 RabbitMQ 的連線與相關資源
 func (c *MQClient) Reconnect() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.conn != nil && !c.conn.IsClosed() {
+		// another goroutine already reconnected
+		return nil
+	}
+
 	newClient, err := NewMQClient(c.cfg)
 	if err != nil {
 		return err
 	}
-	c.Close()
+
+	if c.conn != nil {
+		c.Close()
+	}
 	c.conn = newClient.conn
 	c.ch = newClient.ch
 	c.queue = newClient.queue
