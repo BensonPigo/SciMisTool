@@ -1,6 +1,7 @@
 process_ddl_interval: "60s"    # 每 1 分鐘執行一次DDL批次處理
 process_dml_interval: "600s"   # 每 10 分鐘執行一次DML批次處理
 process_timeout: "30s"    # 單次批次處理timeout 為30秒
+dml_log_generate_interval: "3m"
 
 prometheus:
   metrics_port: 2112 # metrics 暴露 port

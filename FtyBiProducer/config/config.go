@@ -42,12 +42,13 @@ type PrometheusConfig struct {
 
 // Config 是整個服務的設定容器
 type Config struct {
-	MQ                 MQConfig         `mapstructure:"mq"`
-	DB                 DBConfig         `mapstructure:"db"`
-	Prometheus         PrometheusConfig `mapstructure:"prometheus"`
-	ProcessDdlInterval time.Duration    `mapstructure:"process_ddl_interval" validate:"required"`
-	ProcessDmlInterval time.Duration    `mapstructure:"process_dml_interval" validate:"required"`
-	ProcessTimeout     time.Duration    `mapstructure:"process_timeout" validate:"required"`
+	MQ                     MQConfig         `mapstructure:"mq"`
+	DB                     DBConfig         `mapstructure:"db"`
+	Prometheus             PrometheusConfig `mapstructure:"prometheus"`
+	ProcessDdlInterval     time.Duration    `mapstructure:"process_ddl_interval" validate:"required"`
+	ProcessDmlInterval     time.Duration    `mapstructure:"process_dml_interval" validate:"required"`
+	ProcessTimeout         time.Duration    `mapstructure:"process_timeout" validate:"required"`
+	DmlLogGenerateInterval time.Duration    `mapstructure:"dml_log_generate_interval"`
 }
 
 // LoadConfig 從指定檔案路徑讀取設定，並支援 ENV 覆寫，最後進行欄位驗證
@@ -87,6 +88,7 @@ func LoadConfig(path string) (*Config, error) {
 	v.BindEnv("process_ddl_interval")
 	v.BindEnv("process_dml_interval")
 	v.BindEnv("process_timeout")
+	v.BindEnv("dml_log_generate_interval")
 
 	// 1. 讀檔
 	if err := v.ReadInConfig(); err != nil {

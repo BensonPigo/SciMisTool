@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -88,7 +89,35 @@ func main() {
 
 	// 9. 用 WaitGroup 等待兩條線程結束
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(3)
+
+	// 9.1 啟動定時產生 DmlLog 的線程
+	var dmlLogRunning int32
+	go func() {
+		defer wg.Done()
+		ticker := time.NewTicker(cfg.DmlLogGenerateInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				sugar.Info("DmlLogGenerate goroutine 結束")
+				return
+			case <-ticker.C:
+				if !atomic.CompareAndSwapInt32(&dmlLogRunning, 0, 1) {
+					sugar.Warn("上一輪 DmlLogGenerate 尚未完成，略過此次執行")
+					continue
+				}
+				func() {
+					defer atomic.StoreInt32(&dmlLogRunning, 0)
+					runCtx, cancel := context.WithTimeout(ctx, cfg.DmlLogGenerateInterval)
+					defer cancel()
+					if err := proc.DmlLogGenerate(runCtx); err != nil {
+						sugar.Errorf("DmlLogGenerate 執行失敗: %v", err)
+					}
+				}()
+			}
+		}
+	}()
 
 	// 10-1. Producer 1 號 處理DDL: DdlLogProcess
 	go func() {
