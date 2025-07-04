@@ -16,11 +16,29 @@ import (
 type Processor struct {
 	db       *gorm.DB
 	mqClient *mq.MQClient
+	// 緩存： key = tableName, value = []gorm.ColumnType
+	colTypeCache map[string][]gorm.ColumnType
 }
 
 // New 建構 Processor 時，把 MQ Client 傳進來
 func New(db *gorm.DB, mqClient *mq.MQClient) *Processor {
-	return &Processor{db: db, mqClient: mqClient}
+	return &Processor{
+		db:           db,
+		mqClient:     mqClient,
+		colTypeCache: make(map[string][]gorm.ColumnType),
+	}
+}
+
+func (p *Processor) getColumnTypesOnce(ctx context.Context, tableName string) ([]gorm.ColumnType, error) {
+	if types, ok := p.colTypeCache[tableName]; ok {
+		return types, nil
+	}
+	types, err := p.db.WithContext(ctx).Migrator().ColumnTypes(tableName)
+	if err != nil {
+		return nil, err
+	}
+	p.colTypeCache[tableName] = types
+	return types, nil
 }
 
 // Process 負責撈取、打包 message 組成 JSON、呼叫 Publish
@@ -182,10 +200,16 @@ func (p *Processor) DmlLogGenerate(ctx context.Context) error {
 		return fmt.Errorf("查詢 BITaskInfo 失敗: %w", err)
 	}
 	for _, name := range tableNames {
+		if _, err := p.getColumnTypesOnce(ctx, name); err != nil {
+			return fmt.Errorf("取得 %s 欄位資訊失敗: %w", name, err)
+		}
 		if err := p.generateLogsForTable(ctx, name, "Insert"); err != nil {
 			return err
 		}
 		hist := fmt.Sprintf("%s_History", name)
+		if _, err := p.getColumnTypesOnce(ctx, hist); err != nil {
+			return fmt.Errorf("取得 %s 欄位資訊失敗: %w", hist, err)
+		}
 		if err := p.generateLogsForTable(ctx, hist, "Delete"); err != nil {
 			return err
 		}
@@ -213,12 +237,12 @@ func (p *Processor) generateLogsForTable(ctx context.Context, tableName, action 
 		wg.Add(1)
 		go func(b []map[string]interface{}) {
 			defer wg.Done()
-			tx := p.db.WithContext(ctx).Begin()
-			if err := tx.Error; err != nil {
-				errCh <- fmt.Errorf("開啟 transaction 失敗: %w", err)
-				return
-			}
 			for _, row := range b {
+				tx := p.db.WithContext(ctx).Begin()
+				if err := tx.Error; err != nil {
+					errCh <- fmt.Errorf("開啟 transaction 失敗: %w", err)
+					return
+				}
 				data := make(map[string]interface{}, len(row)+1)
 				data["TableName"] = tableName
 				for k, v := range row {
@@ -230,19 +254,26 @@ func (p *Processor) generateLogsForTable(ctx context.Context, tableName, action 
 				}
 				jsonBytes, err := sonic.Marshal(entry)
 				if err != nil {
+					_ = p.updateBIStatus(ctx, tx, tableName, row, "Pnding")
 					tx.Rollback()
 					errCh <- fmt.Errorf("JSON 編碼失敗: %w", err)
 					return
 				}
 				if err := tx.Exec("INSERT INTO [DmlLog]([JSON])VALUES(?)", string(jsonBytes)).Error; err != nil {
+					_ = p.updateBIStatus(ctx, tx, tableName, row, "Pnding")
 					tx.Rollback()
 					errCh <- fmt.Errorf("寫入 DmlLog 失敗: %w", err)
 					return
 				}
-			}
-			if err := tx.Commit().Error; err != nil {
-				errCh <- fmt.Errorf("commit 失敗：%w", err)
-				return
+				if err := p.updateBIStatus(ctx, tx, tableName, row, "Complete"); err != nil {
+					tx.Rollback()
+					errCh <- fmt.Errorf("更新 BIStatus 失敗: %w", err)
+					return
+				}
+				if err := tx.Commit().Error; err != nil {
+					errCh <- fmt.Errorf("commit 失敗：%w", err)
+					return
+				}
 			}
 		}(batch)
 	}
@@ -254,4 +285,26 @@ func (p *Processor) generateLogsForTable(ctx context.Context, tableName, action 
 		}
 	}
 	return nil
+}
+
+// updateBIStatus 根據指定表格的主鍵欄位更新資料列的 BIStatus
+func (p *Processor) updateBIStatus(ctx context.Context, tx *gorm.DB, table string, row map[string]interface{}, status string) error {
+	columnTypes, err := p.getColumnTypesOnce(ctx, table)
+	if err != nil {
+		return err
+	}
+	cond := make(map[string]interface{})
+	for _, ct := range columnTypes {
+		isPK, _ := ct.PrimaryKey()
+		if !isPK {
+			continue
+		}
+		if val, ok := row[ct.Name()]; ok {
+			cond[ct.Name()] = val
+		}
+	}
+	if len(cond) == 0 {
+		return fmt.Errorf("table %s 找不到主鍵欄位", table)
+	}
+	return tx.Table(table).Where(cond).Update("BIStatus", status).Error
 }
