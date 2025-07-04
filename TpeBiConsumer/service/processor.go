@@ -598,3 +598,83 @@ func (p *Processor) DdlLogProcess(ctx context.Context, body []byte) error {
 
 	return nil
 }
+func (p *Processor) DmlLogGenerate(ctx context.Context) error {
+	// 1. 從 BITaskInfo.Name 取得所有目標資料表
+	var tableNames []string
+	if err := p.db.WithContext(ctx).Table("BITaskInfo").Pluck("Name", &tableNames).Error; err != nil {
+		return fmt.Errorf("查詢 BITaskInfo 失敗: %w", err)
+	}
+	for _, name := range tableNames {
+		if err := p.generateLogsForTable(ctx, name, "Insert"); err != nil {
+			return err
+		}
+		hist := fmt.Sprintf("%s_History", name)
+		if err := p.generateLogsForTable(ctx, hist, "Delete"); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *Processor) generateLogsForTable(ctx context.Context, tableName, action string) error {
+	var rows []map[string]interface{}
+	if err := p.db.WithContext(ctx).
+		Table(tableName).
+		Where("BIStatus <> ?", "Complete").
+		Find(&rows).Error; err != nil {
+		return fmt.Errorf("查詢 %s 失敗: %w", tableName, err)
+	}
+	const batchSize = 100
+	var wg sync.WaitGroup
+	errCh := make(chan error, len(rows)/batchSize+1)
+	for i := 0; i < len(rows); i += batchSize {
+		end := i + batchSize
+		if end > len(rows) {
+			end = len(rows)
+		}
+		batch := rows[i:end]
+		wg.Add(1)
+		go func(b []map[string]interface{}) {
+			defer wg.Done()
+			tx := p.db.WithContext(ctx).Begin()
+			if err := tx.Error; err != nil {
+				errCh <- fmt.Errorf("開啟 transaction 失敗: %w", err)
+				return
+			}
+			for _, row := range b {
+				data := make(map[string]interface{}, len(row)+1)
+				data["TableName"] = tableName
+				for k, v := range row {
+					data[k] = v
+				}
+				entry := map[string]interface{}{
+					"Action": action,
+					"Data":   data,
+				}
+				jsonBytes, err := sonic.Marshal(entry)
+				if err != nil {
+					tx.Rollback()
+					errCh <- fmt.Errorf("JSON 編碼失敗: %w", err)
+					return
+				}
+				if err := tx.Exec("INSERT INTO [DmlLog]([JSON]) VALUES(?)", string(jsonBytes)).Error; err != nil {
+					tx.Rollback()
+					errCh <- fmt.Errorf("寫入 DmlLog 失敗: %w", err)
+					return
+				}
+			}
+			if err := tx.Commit().Error; err != nil {
+				errCh <- fmt.Errorf("commit 失敗：%w", err)
+				return
+			}
+		}(batch)
+	}
+	wg.Wait()
+	close(errCh)
+	for e := range errCh {
+		if e != nil {
+			return e
+		}
+	}
+	return nil
+}

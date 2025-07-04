@@ -2,6 +2,7 @@ process_ddl_interval: "15s"    # 每 5 分鐘執行一次DDL批次處理
 process_dml_interval: "1h"    # 每 1 小時小時執行一次DML批次處理
 process_timeout: "1m"    # 單次批次處理timeout 為30秒
 consumer_count: 10 # consumer數量
+dml_log_generate_interval: "3m"
 
 prometheus:
   metrics_port: 2113 # metrics 暴露 port
