@@ -12,8 +12,8 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strconv"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -107,9 +107,7 @@ func main() {
 				}
 				func() {
 					defer atomic.StoreInt32(&dmlLogRunning, 0)
-					runCtx, cancel := context.WithTimeout(ctx, cfg.DmlLogGenerateInterval)
-					defer cancel()
-					if err := proc.DmlLogGenerate(runCtx); err != nil {
+					if err := proc.DmlLogGenerate(ctx); err != nil {
 						sugar.Errorf("DmlLogGenerate 執行失敗: %v", err)
 					}
 				}()
@@ -198,9 +196,10 @@ func main() {
 						sugar.Fatalf("DML批次處理失敗：", zap.Error(err))
 					} else {
 						metrics.ProcessRuns.WithLabelValues("dml").Inc()
+						/* 重要性不高，先不紀錄
 						if logCtn > 0 {
 							sugar.Info("DML批次處理完成，共 " + strconv.Itoa(logCtn) + " 筆")
-						}
+						}*/
 					}
 					metrics.ProcessDuration.WithLabelValues("dml").Observe(time.Since(start).Seconds())
 				}()
