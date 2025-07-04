@@ -227,69 +227,44 @@ func (p *Processor) generateLogsForTable(ctx context.Context, tableName, action 
 		Find(&rows).Error; err != nil {
 		return fmt.Errorf("查詢 %s 失敗: %w", tableName, err)
 	}
-	const batchSize = 100
-	var wg sync.WaitGroup
-	errCh := make(chan error, len(rows)/batchSize+1)
-	for i := 0; i < len(rows); i += batchSize {
-		end := i + batchSize
-		if end > len(rows) {
-			end = len(rows)
+	for _, row := range rows {
+		tx := p.db.WithContext(ctx).Begin()
+		if err := tx.Error; err != nil {
+			return fmt.Errorf("開啟 transaction 失敗: %w", err)
 		}
-		batch := rows[i:end]
-		wg.Add(1)
-		go func(b []map[string]interface{}) {
-			defer wg.Done()
-			for _, row := range b {
-				tx := p.db.WithContext(ctx).Begin()
-				if err := tx.Error; err != nil {
-					errCh <- fmt.Errorf("開啟 transaction 失敗: %w", err)
-					return
-				}
-				data := make(map[string]interface{}, len(row)+1)
-				data["TableName"] = tableName
-				for k, v := range row {
-					data[k] = v
-				}
-				entry := map[string]interface{}{
-					"Action": action,
-					"Data":   data,
-				}
-				jsonBytes, err := sonic.Marshal(entry)
 
-				// 錯誤 Status = Pending
-				if err != nil {
-					_ = p.updateBIStatus(ctx, tx, tableName, row, "Pending")
-					tx.Rollback()
-					errCh <- fmt.Errorf("JSON 編碼失敗: %w", err)
-					return
-				}
-				if err := tx.Exec("INSERT INTO [DmlLog]([JSON])VALUES(?)", string(jsonBytes)).Error; err != nil {
-					_ = p.updateBIStatus(ctx, tx, tableName, row, "Pnding")
-					tx.Rollback()
-					errCh <- fmt.Errorf("寫入 DmlLog 失敗: %w", err)
-					return
-				}
+		data := make(map[string]interface{}, len(row)+1)
+		data["TableName"] = tableName
+		for k, v := range row {
+			data[k] = v
+		}
+		entry := map[string]interface{}{
+			"Action": action,
+			"Data":   data,
+		}
+		jsonBytes, err := sonic.Marshal(entry)
+		if err != nil {
+			_ = p.updateBIStatus(ctx, tx, tableName, row, "Pending")
+			tx.Rollback()
+			return fmt.Errorf("JSON 編碼失敗: %w", err)
+		}
+		if err := tx.Exec("INSERT INTO [DmlLog]([JSON])VALUES(?)", string(jsonBytes)).Error; err != nil {
+			_ = p.updateBIStatus(ctx, tx, tableName, row, "Pnding")
+			tx.Rollback()
+			return fmt.Errorf("寫入 DmlLog 失敗: %w", err)
+		}
 
-				// 完成 Status = Complete
-				if err := p.updateBIStatus(ctx, tx, tableName, row, "Complete"); err != nil {
-					tx.Rollback()
-					errCh <- fmt.Errorf("更新 BIStatus 失敗: %w", err)
-					return
-				}
-				if err := tx.Commit().Error; err != nil {
-					errCh <- fmt.Errorf("commit 失敗：%w", err)
-					return
-				}
-			}
-		}(batch)
-	}
-	wg.Wait()
-	close(errCh)
-	for e := range errCh {
-		if e != nil {
-			return e
+		// 完成 Status = Complete
+		if err := p.updateBIStatus(ctx, tx, tableName, row, "Complete"); err != nil {
+			tx.Rollback()
+			return fmt.Errorf("更新 BIStatus 失敗: %w", err)
+		}
+
+		if err := tx.Commit().Error; err != nil {
+			return fmt.Errorf("commit 失敗：%w", err)
 		}
 	}
+
 	return nil
 }
 
