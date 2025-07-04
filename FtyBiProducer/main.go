@@ -3,6 +3,7 @@ package main
 
 import (
 	"FtyBiProducer/config"
+	"FtyBiProducer/metrics"
 	mq "FtyBiProducer/mq"
 	scilog "FtyBiProducer/scilog"
 	"FtyBiProducer/service"
@@ -13,11 +14,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
-	"sync/atomic"
 	"syscall"
 	"time"
-
-	"FtyBiProducer/metrics"
 
 	"go.uber.org/zap"
 )
@@ -87,34 +85,22 @@ func main() {
 	// 8. 建立 Processor
 	proc := service.New(db, mqClient)
 
-	// 9. 用 WaitGroup 等待兩條線程結束
+	// 9. 用 WaitGroup 等待3條線程結束
 	var wg sync.WaitGroup
 	wg.Add(3)
 
-	// 9.1 啟動定時產生 DmlLog 的線程
-	var dmlLogRunning int32
+	// 9.1 啟動自動產生 DmlLog 的線程
 	go func() {
 		defer wg.Done()
-		ticker := time.NewTicker(cfg.DmlLogGenerateInterval)
-		defer ticker.Stop()
 		for {
 			select {
 			case <-ctx.Done():
 				sugar.Info("DmlLogGenerate goroutine 結束")
 				return
-			case <-ticker.C:
-				if !atomic.CompareAndSwapInt32(&dmlLogRunning, 0, 1) {
-					sugar.Warn("上一輪 DmlLogGenerate 尚未完成，略過此次執行")
-					continue
+			default:
+				if err := proc.DmlLogGenerate(ctx); err != nil {
+					sugar.Errorf("DmlLogGenerate 執行失敗: %v", err)
 				}
-				func() {
-					defer atomic.StoreInt32(&dmlLogRunning, 0)
-					runCtx, cancel := context.WithTimeout(ctx, cfg.DmlLogGenerateInterval)
-					defer cancel()
-					if err := proc.DmlLogGenerate(runCtx); err != nil {
-						sugar.Errorf("DmlLogGenerate 執行失敗: %v", err)
-					}
-				}()
 			}
 		}
 	}()

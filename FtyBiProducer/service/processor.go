@@ -7,6 +7,8 @@ import (
 	"FtyBiProducer/mq"
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/bytedance/sonic"
@@ -221,7 +223,7 @@ func (p *Processor) generateLogsForTable(ctx context.Context, tableName, action 
 	var rows []map[string]interface{}
 	if err := p.db.WithContext(ctx).
 		Table(tableName).
-		Where("BIStatus <> ?", "Complete").
+		Where("BIStatus = ?", "New").
 		Find(&rows).Error; err != nil {
 		return fmt.Errorf("查詢 %s 失敗: %w", tableName, err)
 	}
@@ -253,8 +255,10 @@ func (p *Processor) generateLogsForTable(ctx context.Context, tableName, action 
 					"Data":   data,
 				}
 				jsonBytes, err := sonic.Marshal(entry)
+
+				// 錯誤 Status = Pending
 				if err != nil {
-					_ = p.updateBIStatus(ctx, tx, tableName, row, "Pnding")
+					_ = p.updateBIStatus(ctx, tx, tableName, row, "Pending")
 					tx.Rollback()
 					errCh <- fmt.Errorf("JSON 編碼失敗: %w", err)
 					return
@@ -265,6 +269,8 @@ func (p *Processor) generateLogsForTable(ctx context.Context, tableName, action 
 					errCh <- fmt.Errorf("寫入 DmlLog 失敗: %w", err)
 					return
 				}
+
+				// 完成 Status = Complete
 				if err := p.updateBIStatus(ctx, tx, tableName, row, "Complete"); err != nil {
 					tx.Rollback()
 					errCh <- fmt.Errorf("更新 BIStatus 失敗: %w", err)
@@ -289,22 +295,79 @@ func (p *Processor) generateLogsForTable(ctx context.Context, tableName, action 
 
 // updateBIStatus 根據指定表格的主鍵欄位更新資料列的 BIStatus
 func (p *Processor) updateBIStatus(ctx context.Context, tx *gorm.DB, table string, row map[string]interface{}, status string) error {
+	// 取得欄位描述
 	columnTypes, err := p.getColumnTypesOnce(ctx, table)
 	if err != nil {
 		return err
 	}
-	cond := make(map[string]interface{})
+
+	// ★ 先正規化 row，避免 []byte 被誤判 ★
+	normalizeRow(columnTypes, row)
+
+	// 取得table pkey
+	pkCond := make(map[string]interface{})
+	// 有些table 無 pkey，則全欄位比對
+	fullCond := make(map[string]interface{})
 	for _, ct := range columnTypes {
-		isPK, _ := ct.PrimaryKey()
-		if !isPK {
+		name := ct.Name()
+		val, ok := row[name]
+		if !ok {
 			continue
 		}
-		if val, ok := row[ct.Name()]; ok {
-			cond[ct.Name()] = val
+		if name == "FOB" {
+			fullCond[name] = val
+		}
+		fullCond[name] = val
+		if isPK, _ := ct.PrimaryKey(); isPK {
+			pkCond[name] = val
 		}
 	}
-	if len(cond) == 0 {
-		return fmt.Errorf("table %s 找不到主鍵欄位", table)
+	// 決定使用 fullCond 還是 pkCond
+	cond := fullCond
+	if len(pkCond) != 0 {
+		cond = pkCond
 	}
-	return tx.Table(table).Where(cond).Update("BIStatus", status).Error
+
+	// 執行更新
+	res := tx.Table(table).Where(cond).Update("BIStatus", status)
+	if res.Error != nil {
+		return res.Error
+	}
+
+	// 如果沒更新到任何列，就回傳 ErrRecordNotFound
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
+}
+
+// 將 row 內的 []byte / []uint8 轉成正確型別
+func normalizeRow(cols []gorm.ColumnType, row map[string]interface{}) {
+	for _, c := range cols {
+		name := c.Name()
+
+		v, ok := row[name]
+		if !ok {
+			continue
+		}
+		b, ok := v.([]byte) // gorm 回傳的是 []uint8，與 []byte 同底層
+		if !ok {
+			continue
+		}
+
+		dbType := strings.ToUpper(c.DatabaseTypeName())
+		switch dbType {
+		case "NUMERIC", "DECIMAL", "MONEY", "SMALLMONEY":
+			// 需比較數值 → 轉成 float64（或自行改用 decimal 套件）
+			if f, err := strconv.ParseFloat(string(b), 64); err == nil {
+				row[name] = f
+			} else {
+				row[name] = string(b) // 解析失敗就先用字串
+			}
+		default:
+			// 其他型別一律轉成字串
+			row[name] = string(b)
+		}
+	}
 }
