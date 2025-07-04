@@ -89,18 +89,30 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(3)
 
-	// 9.1 啟動自動產生 DmlLog 的線程
+	// 9.1 啟動定時產生 DmlLog 的線程
+	var dmlLogRunning int32
 	go func() {
 		defer wg.Done()
+		ticker := time.NewTicker(cfg.DmlLogGenerateInterval)
+		defer ticker.Stop()
 		for {
 			select {
 			case <-ctx.Done():
 				sugar.Info("DmlLogGenerate goroutine 結束")
 				return
-			default:
-				if err := proc.DmlLogGenerate(ctx); err != nil {
-					sugar.Errorf("DmlLogGenerate 執行失敗: %v", err)
+			case <-ticker.C:
+				if !atomic.CompareAndSwapInt32(&dmlLogRunning, 0, 1) {
+					sugar.Warn("上一輪 DmlLogGenerate 尚未完成，略過此次執行")
+					continue
 				}
+				func() {
+					defer atomic.StoreInt32(&dmlLogRunning, 0)
+					runCtx, cancel := context.WithTimeout(ctx, cfg.DmlLogGenerateInterval)
+					defer cancel()
+					if err := proc.DmlLogGenerate(runCtx); err != nil {
+						sugar.Errorf("DmlLogGenerate 執行失敗: %v", err)
+					}
+				}()
 			}
 		}
 	}()
